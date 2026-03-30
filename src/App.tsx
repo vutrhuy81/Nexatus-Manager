@@ -10,11 +10,13 @@ import {
   X, 
   CheckCircle2, 
   AlertCircle,
+  ChevronRight,
+  Filter,
   Database,
   User as UserIcon,
+  ShieldCheck,
   Settings,
-  Download,
-  Trash2 // Đã thêm icon Trash2 để làm nút xóa
+  Download
 } from 'lucide-react';
 import { User, UserRole, ProjectData, AGENCIES } from './types';
 
@@ -87,6 +89,13 @@ export default function App() {
   const handleExportLogs = () => {
     if (user?.role === 'ADMIN') {
       const url = `/api/export/logs`;
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'activity_log.csv');
+      // We need to pass the header if we want to be strict, but res.download is a GET.
+      // For simplicity, I'll use a fetch to get the blob if headers are needed, 
+      // but res.download in a new tab won't have headers.
+      // I'll use fetch + blob for logs to include the role header.
       fetch(url, {
         headers: { 'x-user-role': user.role }
       })
@@ -103,18 +112,19 @@ export default function App() {
     }
   };
 
-  // ĐÃ CẬP NHẬT LẠI: Gửi 1 object duy nhất để khớp với MongoDB Server
   const handleSave = async (project: ProjectData) => {
+    let newData;
     let action = '';
     let details = '';
-    let projectToSave = { ...project };
 
-    if (projectToSave._id) {
+    if (editingProject) {
+      newData = data.map(p => p.STT === editingProject.STT ? project : p);
       action = 'CẬP NHẬT';
       details = `Cập nhật công trình: ${project['Tên công trình']} (STT: ${project.STT})`;
     } else {
       const nextStt = data.length > 0 ? (Math.max(...data.map(p => parseInt(p.STT) || 0)) + 1).toString() : "1";
-      projectToSave.STT = nextStt;
+      const newProject = { ...project, STT: nextStt };
+      newData = [...data, newProject];
       action = 'KHAI BÁO MỚI';
       details = `Khai báo công trình mới: ${project['Tên công trình']} (STT: ${nextStt})`;
     }
@@ -124,63 +134,19 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          data: projectToSave,
+          data: newData,
           user: user?.username,
           action,
           details
         }),
       });
-
       if (res.ok) {
-        const result = await res.json();
-        const savedRecord = result.data; 
-
-        if (projectToSave._id) {
-          setData(data.map(p => p._id === savedRecord._id ? savedRecord : p));
-        } else {
-          setData([...data, savedRecord]);
-        }
-        
+        setData(newData);
         setIsModalOpen(false);
         setEditingProject(null);
-      } else {
-        alert("Có lỗi xảy ra khi lưu dữ liệu lên server.");
       }
     } catch (error) {
       console.error('Failed to save data', error);
-    }
-  };
-
-  // TÍNH NĂNG MỚI: Xóa bản ghi
-  const handleDelete = async (project: ProjectData) => {
-    if (!project._id) {
-      alert("Không tìm thấy ID của bản ghi để xóa.");
-      return;
-    }
-
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa công trình: ${project['Tên công trình']}?`)) {
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/data/${project._id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user: user?.username,
-          action: 'XÓA BẢN GHI',
-          details: `Xóa công trình: ${project['Tên công trình']} (STT: ${project.STT})`
-        }),
-      });
-
-      if (res.ok) {
-        // Cập nhật lại UI bằng cách lọc bỏ dự án vừa xóa
-        setData(data.filter(p => p._id !== project._id));
-      } else {
-        alert("Có lỗi xảy ra khi xóa dữ liệu trên server.");
-      }
-    } catch (error) {
-      console.error('Lỗi khi gọi API xóa:', error);
     }
   };
 
@@ -259,6 +225,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] font-sans text-gray-800">
+      {/* Sidebar / Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
@@ -303,6 +270,7 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Actions Bar */}
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-8">
           <div className="relative w-full md:w-96">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -338,6 +306,7 @@ export default function App() {
           </div>
         </div>
 
+        {/* Data Table */}
         <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -363,7 +332,7 @@ export default function App() {
                   </tr>
                 ) : (
                   filteredData.map((project) => (
-                    <tr key={project._id || project.STT} className="hover:bg-gray-50/50 transition-colors group">
+                    <tr key={project.STT} className="hover:bg-gray-50/50 transition-colors group">
                       <td className="px-6 py-4 text-sm font-mono text-gray-400">{project.STT}</td>
                       <td className="px-6 py-4">
                         <div className="font-semibold text-gray-900 line-clamp-1">{project['Tên công trình']}</div>
@@ -381,28 +350,16 @@ export default function App() {
                       <td className="px-6 py-4">
                         <StatusBadge status={project['Đã tích hợp Nexatus']} />
                       </td>
-                      <td className="px-6 py-4 text-right flex justify-end gap-1">
+                      <td className="px-6 py-4 text-right">
                         <button 
                           onClick={() => {
                             setEditingProject(project);
                             setIsModalOpen(true);
                           }}
-                          title="Chỉnh sửa công trình"
                           className="p-2 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
                         >
                           <Edit2 size={16} />
                         </button>
-                        
-                        {/* Nút Xóa chỉ hiện cho ADMIN */}
-                        {user.role === 'ADMIN' && (
-                          <button 
-                            onClick={() => handleDelete(project)}
-                            title="Xóa công trình"
-                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
                       </td>
                     </tr>
                   ))
@@ -413,6 +370,7 @@ export default function App() {
         </div>
       </main>
 
+      {/* Modals */}
       <AnimatePresence>
         {isModalOpen && (
           <ProjectModal 
@@ -447,7 +405,7 @@ function LogModal({ user, onClose }: { user: User; onClose: () => void }) {
           headers: { 'x-user-role': user.role }
         });
         const data = await res.json();
-        setLogs(data.reverse());
+        setLogs(data.reverse()); // Show newest first
       } catch (error) {
         console.error('Failed to fetch logs', error);
       } finally {
@@ -524,9 +482,7 @@ function LogModal({ user, onClose }: { user: User; onClose: () => void }) {
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-mono text-gray-400">{new Date(log.timestamp).toLocaleString('vi-VN')}</span>
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                        log.action === 'KHAI BÁO MỚI' ? 'bg-green-100 text-green-700' :
-                        log.action === 'XÓA BẢN GHI' ? 'bg-red-100 text-red-700' :
-                        'bg-blue-100 text-blue-700'
+                        log.action === 'KHAI BÁO MỚI' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                       }`}>
                         {log.action}
                       </span>
@@ -614,7 +570,7 @@ function ProjectModal({ user, project, onClose, onSave }: {
 
   const isRequired = (field: keyof ProjectData) => {
     const required = ['Công ty điện lực', 'Đơn vị điện lực', 'Tên công trình', 'Mã khách hàng', 'Tên đại lý', 'Địa chỉ', 'Listening interface', 'Preshared key', 'Local ID', 'Remote ID', 'Local subnet', 'Remote subnet'];
-    return required.includes(field as string);
+    return required.includes(field);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -654,14 +610,39 @@ function ProjectModal({ user, project, onClose, onSave }: {
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            {/* Section: General Info */}
             <div className="col-span-full mb-2">
               <h3 className="text-xs font-bold uppercase tracking-widest text-primary border-b border-primary/10 pb-2">Thông Tin Chung</h3>
             </div>
             
-            <FormField label="Công ty điện lực" required={isRequired('Công ty điện lực')} disabled={!canEditField('Công ty điện lực')} value={formData['Công ty điện lực']} onChange={(v) => setFormData({ ...formData, 'Công ty điện lực': v })} />
-            <FormField label="Đơn vị điện lực" required={isRequired('Đơn vị điện lực')} disabled={!canEditField('Đơn vị điện lực')} value={formData['Đơn vị điện lực']} onChange={(v) => setFormData({ ...formData, 'Đơn vị điện lực': v })} />
-            <FormField label="Tên công trình" required={isRequired('Tên công trình')} disabled={!canEditField('Tên công trình')} value={formData['Tên công trình']} onChange={(v) => setFormData({ ...formData, 'Tên công trình': v })} />
-            <FormField label="Mã khách hàng" required={isRequired('Mã khách hàng')} disabled={!canEditField('Mã khách hàng')} value={formData['Mã khách hàng']} onChange={(v) => setFormData({ ...formData, 'Mã khách hàng': v })} />
+            <FormField 
+              label="Công ty điện lực" 
+              required={isRequired('Công ty điện lực')}
+              disabled={!canEditField('Công ty điện lực')}
+              value={formData['Công ty điện lực']}
+              onChange={(v) => setFormData({ ...formData, 'Công ty điện lực': v })}
+            />
+            <FormField 
+              label="Đơn vị điện lực" 
+              required={isRequired('Đơn vị điện lực')}
+              disabled={!canEditField('Đơn vị điện lực')}
+              value={formData['Đơn vị điện lực']}
+              onChange={(v) => setFormData({ ...formData, 'Đơn vị điện lực': v })}
+            />
+            <FormField 
+              label="Tên công trình" 
+              required={isRequired('Tên công trình')}
+              disabled={!canEditField('Tên công trình')}
+              value={formData['Tên công trình']}
+              onChange={(v) => setFormData({ ...formData, 'Tên công trình': v })}
+            />
+            <FormField 
+              label="Mã khách hàng" 
+              required={isRequired('Mã khách hàng')}
+              disabled={!canEditField('Mã khách hàng')}
+              value={formData['Mã khách hàng']}
+              onChange={(v) => setFormData({ ...formData, 'Mã khách hàng': v })}
+            />
             
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">
@@ -679,19 +660,62 @@ function ProjectModal({ user, project, onClose, onSave }: {
               </select>
             </div>
 
-            <FormField label="Địa chỉ" required={isRequired('Địa chỉ')} disabled={!canEditField('Địa chỉ')} value={formData['Địa chỉ']} onChange={(v) => setFormData({ ...formData, 'Địa chỉ': v })} />
+            <FormField 
+              label="Địa chỉ" 
+              required={isRequired('Địa chỉ')}
+              disabled={!canEditField('Địa chỉ')}
+              value={formData['Địa chỉ']}
+              onChange={(v) => setFormData({ ...formData, 'Địa chỉ': v })}
+            />
 
+            {/* Section: Technical Info */}
             <div className="col-span-full mt-4 mb-2">
               <h3 className="text-xs font-bold uppercase tracking-widest text-primary border-b border-primary/10 pb-2">Thông Số Kỹ Thuật (VPN Profile)</h3>
             </div>
 
-            <FormField label="Listening interface" required={isRequired('Listening interface')} disabled={!canEditField('Listening interface')} value={formData['Listening interface']} onChange={(v) => setFormData({ ...formData, 'Listening interface': v })} />
-            <FormField label="Preshared key" required={isRequired('Preshared key')} disabled={!canEditField('Preshared key')} value={formData['Preshared key']} onChange={(v) => setFormData({ ...formData, 'Preshared key': v })} />
-            <FormField label="Local ID" required={isRequired('Local ID')} disabled={!canEditField('Local ID')} value={formData['Local ID']} onChange={(v) => setFormData({ ...formData, 'Local ID': v })} />
-            <FormField label="Remote ID" required={isRequired('Remote ID')} disabled={!canEditField('Remote ID')} value={formData['Remote ID']} onChange={(v) => setFormData({ ...formData, 'Remote ID': v })} />
-            <FormField label="Local subnet" required={isRequired('Local subnet')} disabled={!canEditField('Local subnet')} value={formData['Local subnet']} onChange={(v) => setFormData({ ...formData, 'Local subnet': v })} />
-            <FormField label="Remote subnet" required={isRequired('Remote subnet')} disabled={!canEditField('Remote subnet')} value={formData['Remote subnet']} onChange={(v) => setFormData({ ...formData, 'Remote subnet': v })} />
-            
+            <FormField 
+              label="Listening interface" 
+              required={isRequired('Listening interface')}
+              disabled={!canEditField('Listening interface')}
+              value={formData['Listening interface']}
+              onChange={(v) => setFormData({ ...formData, 'Listening interface': v })}
+            />
+            <FormField 
+              label="Preshared key" 
+              required={isRequired('Preshared key')}
+              disabled={!canEditField('Preshared key')}
+              value={formData['Preshared key']}
+              onChange={(v) => setFormData({ ...formData, 'Preshared key': v })}
+            />
+            <FormField 
+              label="Local ID" 
+              required={isRequired('Local ID')}
+              disabled={!canEditField('Local ID')}
+              value={formData['Local ID']}
+              onChange={(v) => setFormData({ ...formData, 'Local ID': v })}
+            />
+            <FormField 
+              label="Remote ID" 
+              required={isRequired('Remote ID')}
+              disabled={!canEditField('Remote ID')}
+              value={formData['Remote ID']}
+              onChange={(v) => setFormData({ ...formData, 'Remote ID': v })}
+            />
+            <FormField 
+              label="Local subnet" 
+              required={isRequired('Local subnet')}
+              disabled={!canEditField('Local subnet')}
+              value={formData['Local subnet']}
+              onChange={(v) => setFormData({ ...formData, 'Local subnet': v })}
+            />
+            <FormField 
+              label="Remote subnet" 
+              required={isRequired('Remote subnet')}
+              disabled={!canEditField('Remote subnet')}
+              value={formData['Remote subnet']}
+              onChange={(v) => setFormData({ ...formData, 'Remote subnet': v })}
+            />
+            {/* Section: Physical Info */}
             <div className="col-span-full mt-4 mb-2">
               <h3 className="text-xs font-bold uppercase tracking-widest text-primary border-b border-primary/10 pb-2">Thông Số Vật lý</h3>
             </div>
@@ -718,6 +742,7 @@ function ProjectModal({ user, project, onClose, onSave }: {
 
             <FormField label="SN Nexatus" disabled={!canEditField('SN Nexatus')} value={formData['SN Nexatus']} onChange={(v) => setFormData({ ...formData, 'SN Nexatus': v })} />
 
+            {/* Section: Operation Status */}
             <div className="col-span-full mt-4 mb-2">
               <h3 className="text-xs font-bold uppercase tracking-widest text-primary border-b border-primary/10 pb-2">Trạng Thái Vận Hành</h3>
             </div>
