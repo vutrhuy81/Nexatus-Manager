@@ -2,7 +2,6 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { stringify } from "csv-stringify/sync";
-import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -162,7 +161,9 @@ async function startServer() {
   // 3. CẤU HÌNH VITE / STATIC FILE
   // ==========================================
   if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
+    // Sử dụng dynamic import: Chỉ nạp Vite khi chạy local
+    const viteModule = await import("vite");
+    const vite = await viteModule.createServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
