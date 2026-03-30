@@ -16,7 +16,12 @@ export interface ProjectData {
   'Mã khách hàng': string;
   'Tên đại lý': string;
   'Địa chỉ': string;
-  'Vpn Profile': string;
+  'Listening interface': string;
+  'Preshared key': string;
+  'Local ID': string;
+  'Remote ID': string;
+  'Local subnet': string;
+  'Remote subnet': string;
   Lat: string;
   Long: string;
   'CSTK DC (kWp)': string;
