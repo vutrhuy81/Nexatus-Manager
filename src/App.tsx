@@ -533,7 +533,12 @@ function ProjectModal({ user, project, onClose, onSave }: {
     'Mã khách hàng': '',
     'Tên đại lý': user.agencyName || '',
     'Địa chỉ': '',
-    'Vpn Profile': '',
+    'Listening interface': '',
+    'Preshared key': '',
+    'Local ID': '',
+    'Remote ID': '',
+    'Local subnet': '',
+    'Remote subnet': '',
     Lat: '',
     Long: '',
     'CSTK DC (kWp)': '',
@@ -564,7 +569,7 @@ function ProjectModal({ user, project, onClose, onSave }: {
   };
 
   const isRequired = (field: keyof ProjectData) => {
-    const required = ['Công ty điện lực', 'Đơn vị điện lực', 'Tên công trình', 'Mã khách hàng', 'Tên đại lý', 'Địa chỉ', 'Vpn Profile'];
+    const required = ['Công ty điện lực', 'Đơn vị điện lực', 'Tên công trình', 'Mã khách hàng', 'Tên đại lý', 'Địa chỉ', 'Listening interface', 'Preshared key', 'Local ID', 'Remote ID', 'Local subnet', 'Remote subnet'];
     return required.includes(field);
   };
 
@@ -665,16 +670,56 @@ function ProjectModal({ user, project, onClose, onSave }: {
 
             {/* Section: Technical Info */}
             <div className="col-span-full mt-4 mb-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-primary border-b border-primary/10 pb-2">Thông Số Kỹ Thuật</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-primary border-b border-primary/10 pb-2">Thông Số Kỹ Thuật (VPN Profile)</h3>
             </div>
 
             <FormField 
-              label="Vpn Profile" 
-              required={isRequired('Vpn Profile')}
-              disabled={!canEditField('Vpn Profile')}
-              value={formData['Vpn Profile']}
-              onChange={(v) => setFormData({ ...formData, 'Vpn Profile': v })}
+              label="Listening interface" 
+              required={isRequired('Listening interface')}
+              disabled={!canEditField('Listening interface')}
+              value={formData['Listening interface']}
+              onChange={(v) => setFormData({ ...formData, 'Listening interface': v })}
             />
+            <FormField 
+              label="Preshared key" 
+              required={isRequired('Preshared key')}
+              disabled={!canEditField('Preshared key')}
+              value={formData['Preshared key']}
+              onChange={(v) => setFormData({ ...formData, 'Preshared key': v })}
+            />
+            <FormField 
+              label="Local ID" 
+              required={isRequired('Local ID')}
+              disabled={!canEditField('Local ID')}
+              value={formData['Local ID']}
+              onChange={(v) => setFormData({ ...formData, 'Local ID': v })}
+            />
+            <FormField 
+              label="Remote ID" 
+              required={isRequired('Remote ID')}
+              disabled={!canEditField('Remote ID')}
+              value={formData['Remote ID']}
+              onChange={(v) => setFormData({ ...formData, 'Remote ID': v })}
+            />
+            <FormField 
+              label="Local subnet" 
+              required={isRequired('Local subnet')}
+              disabled={!canEditField('Local subnet')}
+              value={formData['Local subnet']}
+              onChange={(v) => setFormData({ ...formData, 'Local subnet': v })}
+            />
+            <FormField 
+              label="Remote subnet" 
+              required={isRequired('Remote subnet')}
+              disabled={!canEditField('Remote subnet')}
+              value={formData['Remote subnet']}
+              onChange={(v) => setFormData({ ...formData, 'Remote subnet': v })}
+            />
+            {/* Section: Physical Info */}
+            <div className="col-span-full mt-4 mb-2">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-primary border-b border-primary/10 pb-2">Thông Số Vật lý</h3>
+            </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <FormField label="Lat" disabled={!canEditField('Lat')} value={formData.Lat} onChange={(v) => setFormData({ ...formData, Lat: v })} />
               <FormField label="Long" disabled={!canEditField('Long')} value={formData.Long} onChange={(v) => setFormData({ ...formData, Long: v })} />
