@@ -2,11 +2,11 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { stringify } from "csv-stringify/sync";
+import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
-// Load biến môi trường từ file .env (cho môi trường local)
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,7 +26,6 @@ mongoose.connect(MONGODB_URI)
   .then(() => console.log("✅ Đã kết nối thành công tới MongoDB Atlas"))
   .catch((err) => console.error("❌ Lỗi kết nối MongoDB:", err));
 
-// Schema cho Logs
 const logSchema = new mongoose.Schema({
   timestamp: { type: String, required: true },
   user: { type: String, required: true },
@@ -35,13 +34,9 @@ const logSchema = new mongoose.Schema({
 });
 const Log = mongoose.model("Log", logSchema);
 
-// Schema cho Dataset 
-// Dùng { strict: false } vì tôi không rõ cấu trúc cột CSV cũ của bạn gồm những gì,
-// điều này cho phép bạn lưu JSON data linh hoạt giống hệt như lưu CSV cũ.
 const dataSchema = new mongoose.Schema({}, { strict: false, versionKey: false });
 const Dataset = mongoose.model("Dataset", dataSchema);
 
-// Hàm ghi Log
 async function writeLog(user: string, action: string, details: string) {
   const timestamp = new Date().toISOString();
   try {
@@ -61,98 +56,107 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
-  // Lấy dữ liệu công trình (thay vì đọc file dataset.csv)
+  // ĐÃ SỬA: Bỏ { _id: 0 } để trả về ID cho Frontend
   app.get("/api/data", async (req, res) => {
     try {
-      // Lấy toàn bộ dữ liệu, loại bỏ trường _id của MongoDB để trả về JSON thuần như cũ
-      const records = await Dataset.find({}, { _id: 0 }).lean();
+      const records = await Dataset.find({}).lean();
       res.json(records);
     } catch (error) {
-      console.error("Error fetching data from MongoDB:", error);
+      console.error("Error fetching data:", error);
       res.status(500).json({ error: "Failed to read data" });
     }
   });
 
-  // Lưu dữ liệu công trình
+  // ĐÃ SỬA: Chỉ Thêm mới hoặc Cập nhật 1 bản ghi dựa trên ID (Không dùng deleteMany nữa)
   app.post("/api/data", async (req, res) => {
     try {
-      const { data: newData, user, action, details } = req.body;
+      const { data: recordData, user, action, details } = req.body;
       
-      // Logic cũ của bạn là ghi đè toàn bộ file CSV. 
-      // Do đó, ta sẽ xóa trắng Collection và Insert lại toàn bộ dữ liệu mới.
-      await Dataset.deleteMany({});
-      if (newData && newData.length > 0) {
-        await Dataset.insertMany(newData);
+      if (!recordData) {
+        return res.status(400).json({ error: "Không có dữ liệu gửi lên" });
+      }
+
+      let savedRecord;
+
+      if (recordData._id) {
+        const { _id, ...updateFields } = recordData;
+        savedRecord = await Dataset.findByIdAndUpdate(_id, updateFields, { new: true });
+      } else {
+        savedRecord = await Dataset.create(recordData);
       }
       
       if (user && action) {
         await writeLog(user, action, details || "");
       }
       
-      res.json({ message: "Data saved successfully to MongoDB" });
+      res.json({ message: "Lưu dữ liệu thành công", data: savedRecord });
     } catch (error) {
-      console.error("Error writing data to MongoDB:", error);
+      console.error("Error saving data:", error);
       res.status(500).json({ error: "Failed to save data" });
     }
   });
 
-  // Đọc danh sách logs
+  // API Xóa bản ghi
+  app.delete("/api/data/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { user, action, details } = req.body; 
+
+      await Dataset.findByIdAndDelete(id);
+
+      if (user && action) {
+        await writeLog(user, action, details || `Đã xóa bản ghi ID: ${id}`);
+      }
+
+      res.json({ message: "Xóa dữ liệu thành công" });
+    } catch (error) {
+      console.error("Error deleting data:", error);
+      res.status(500).json({ error: "Failed to delete data" });
+    }
+  });
+
   app.get("/api/logs", async (req, res) => {
     const role = req.headers["x-user-role"];
-    if (role !== "ADMIN") {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
+    if (role !== "ADMIN") return res.status(403).json({ error: "Unauthorized" });
 
     try {
-      // Lấy logs, sắp xếp mới nhất lên đầu, bỏ đi cột _id và __v
       const logs = await Log.find({}, { _id: 0, __v: 0 }).sort({ timestamp: -1 }).lean();
       res.json(logs);
     } catch (error) {
-      console.error("Error reading logs from MongoDB:", error);
       res.status(500).json({ error: "Failed to read logs" });
     }
   });
 
-  // Xuất file CSV (Data)
+  // Xuất file CSV Data (Vẫn giữ {_id: 0} ở đây để file tải về không bị dính cột mã ID lạ)
   app.get("/api/export/data", async (req, res) => {
     try {
       const records = await Dataset.find({}, { _id: 0 }).lean();
-      if (!records || records.length === 0) {
-        return res.status(404).send("No data available to export");
-      }
+      if (!records || records.length === 0) return res.status(404).send("No data");
       
       const content = stringify(records, { header: true });
-      const bom = "\uFEFF"; // Hỗ trợ hiển thị tiếng Việt UTF-8 trên Excel
-      
+      const bom = "\uFEFF"; 
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", "attachment; filename=dataset.csv");
       res.send(bom + content);
     } catch (error) {
-      console.error("Export data error:", error);
       res.status(500).send("Export failed");
     }
   });
 
-  // Xuất file CSV (Logs)
   app.get("/api/export/logs", async (req, res) => {
     const role = req.headers["x-user-role"];
-    if (role !== "ADMIN") {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
+    if (role !== "ADMIN") return res.status(403).json({ error: "Unauthorized" });
+    
     try {
       const logs = await Log.find({}, { _id: 0, __v: 0 }).sort({ timestamp: -1 }).lean();
-      if (!logs || logs.length === 0) {
-        return res.status(404).send("No logs available to export");
-      }
+      if (!logs || logs.length === 0) return res.status(404).send("No logs");
 
       const content = stringify(logs, { header: true });
       const bom = "\uFEFF";
-      
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", "attachment; filename=activity_log.csv");
       res.send(bom + content);
     } catch (error) {
-      console.error("Export logs error:", error);
       res.status(500).send("Export failed");
     }
   });
@@ -161,7 +165,6 @@ async function startServer() {
   // 3. CẤU HÌNH VITE / STATIC FILE
   // ==========================================
   if (process.env.NODE_ENV !== "production") {
-    // Sử dụng dynamic import: Chỉ nạp Vite khi chạy local
     const viteModule = await import("vite");
     const vite = await viteModule.createServer({
       server: { middlewareMode: true },
@@ -177,7 +180,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
   });
 }
 
