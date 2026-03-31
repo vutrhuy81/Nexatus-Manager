@@ -382,7 +382,13 @@ export default function App() {
                         <StatusBadge status={project['Đã gửi cấu hình Nexatus']} />
                       </td>
                       <td className="px-6 py-4">
+                        <StatusBadge status={project['Đã upload cấu hình Nexatus']} />
+                      </td>
+                      <td className="px-6 py-4">
                         <StatusBadge status={project['Đã tích hợp Nexatus']} />
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={project['Đã nghiệm thu']} />
                       </td>
                       <td className="px-6 py-4 text-right flex justify-end gap-1">
                         <button 
@@ -807,8 +813,22 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
               </select>
             </div>
             <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Đã upload cấu hình Nexatus</label>
+              <select disabled={!canEditField('Đã upload cấu hình Nexatus')} value={formData['Đã upload cấu hình Nexatus']} onChange={(e) => setFormData({ ...formData, 'Đã upload cấu hình Nexatus': e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary text-sm disabled:opacity-60">
+                <option value="Ok">Ok</option>
+                <option value="Nok">Nok</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Đã tích hợp Nexatus</label>
               <select disabled={!canEditField('Đã tích hợp Nexatus')} value={formData['Đã tích hợp Nexatus']} onChange={(e) => setFormData({ ...formData, 'Đã tích hợp Nexatus': e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary text-sm disabled:opacity-60">
+                <option value="Ok">Ok</option>
+                <option value="Nok">Nok</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Đã nghiệm thu</label>
+              <select disabled={!canEditField('Đã nghiệm thu')} value={formData['Đã nghiệm thu']} onChange={(e) => setFormData({ ...formData, 'Đã nghiệm thu': e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary text-sm disabled:opacity-60">
                 <option value="Ok">Ok</option>
                 <option value="Nok">Nok</option>
               </select>
