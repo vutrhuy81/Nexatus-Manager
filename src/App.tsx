@@ -368,7 +368,12 @@ export default function App() {
                   </tr>
                 ) : (
                   filteredData.map((project) => (
-                    <tr key={project._id || project.STT} className="hover:bg-gray-50/50 transition-colors group">
+                    // ĐÃ SỬA Ở ĐÂY: Thêm thuộc tính title hiển thị khi hover
+                    <tr 
+                      key={project._id || project.STT} 
+                      className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
+                      title={`Tên công trình: ${project['Tên công trình']}\nRemote Subnet: ${project['Remote subnet'] || 'Chưa có'}`}
+                    >
                       <td className="px-6 py-4 text-sm font-mono text-gray-400">{project.STT}</td>
                       <td className="px-6 py-4">
                         <div className="font-semibold text-gray-900 line-clamp-1">{project['Tên công trình']}</div>
