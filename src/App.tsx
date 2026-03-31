@@ -19,9 +19,9 @@ import {
 import { User, UserRole, ProjectData, AGENCIES } from './types';
 
 const USERS: Record<string, { password: string; role: UserRole; agencyName?: string }> = {
-  'admin': { password: '123456', role: 'ADMIN' },
-  'operation1': { password: '123456', role: 'OPERATION' },
-  'operation2': { password: '123456', role: 'OPERATION' },
+  'Admin': { password: '123456', role: 'ADMIN' },
+  'Operation1': { password: '123456', role: 'OPERATION' },
+  'Operation2': { password: '123456', role: 'OPERATION' },
   'Hoaphat': { password: '123456', role: 'AGENCY', agencyName: 'Hoà Phát' },
   'Damitech': { password: '123456', role: 'AGENCY', agencyName: 'Damitech' },
   'Vietlong': { password: '123456', role: 'AGENCY', agencyName: 'Việt Long' },
@@ -686,11 +686,11 @@ function ProjectModal({ user, project, onClose, onSave }: {
             </div>
 
             <FormField label="Listening interface" required={isRequired('Listening interface')} disabled={!canEditField('Listening interface')} value={formData['Listening interface']} onChange={(v) => setFormData({ ...formData, 'Listening interface': v })} />
-            <FormField label="Preshared key" required={isRequired('Preshared key')} disabled={!canEditField('Preshared key')} value={formData['Preshared key']} onChange={(v) => setFormData({ ...formData, 'Preshared key': v })} />
+            <FormField label="Preshared key" disabled={!canEditField('Preshared key')} value={formData['Preshared key']} onChange={(v) => setFormData({ ...formData, 'Preshared key': v })} />
             <FormField label="Local ID" required={isRequired('Local ID')} disabled={!canEditField('Local ID')} value={formData['Local ID']} onChange={(v) => setFormData({ ...formData, 'Local ID': v })} />
-            <FormField label="Remote ID" required={isRequired('Remote ID')} disabled={!canEditField('Remote ID')} value={formData['Remote ID']} onChange={(v) => setFormData({ ...formData, 'Remote ID': v })} />
+            <FormField label="Remote ID" disabled={!canEditField('Remote ID')} value={formData['Remote ID']} onChange={(v) => setFormData({ ...formData, 'Remote ID': v })} />
             <FormField label="Local subnet" required={isRequired('Local subnet')} disabled={!canEditField('Local subnet')} value={formData['Local subnet']} onChange={(v) => setFormData({ ...formData, 'Local subnet': v })} />
-            <FormField label="Remote subnet" required={isRequired('Remote subnet')} disabled={!canEditField('Remote subnet')} value={formData['Remote subnet']} onChange={(v) => setFormData({ ...formData, 'Remote subnet': v })} />
+            <FormField label="Remote subnet" disabled={!canEditField('Remote subnet')} value={formData['Remote subnet']} onChange={(v) => setFormData({ ...formData, 'Remote subnet': v })} />
             
             <div className="col-span-full mt-4 mb-2">
               <h3 className="text-xs font-bold uppercase tracking-widest text-primary border-b border-primary/10 pb-2">Thông Số Vật lý</h3>
