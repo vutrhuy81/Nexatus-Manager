@@ -350,8 +350,10 @@ export default function App() {
                   <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Tên Công Trình</th>
                   <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Đại Lý</th>
                   <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Mã Khách Hàng</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Nexatus Config</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Tích Hợp</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Send Nex.Cfg</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Upload Nex.Cfg</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Tích Hợp RMCS</th>
+                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Nghiệm thu</th>
                   <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-right">Thao Tác</th>
                 </tr>
               </thead>
@@ -726,7 +728,7 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
     return false;
   };
 
-  const isRequired = (field: keyof ProjectData) => ['Công ty điện lực', 'Đơn vị điện lực', 'Tên công trình', 'Mã khách hàng', 'Tên đại lý', 'Địa chỉ', 'Listening interface', 'Preshared key', 'Local ID', 'Remote ID', 'Local subnet', 'Remote subnet'].includes(field as string);
+  const isRequired = (field: keyof ProjectData) => ['Công ty điện lực', 'Đơn vị điện lực', 'Tên công trình', 'Mã khách hàng', 'Tên đại lý', 'Địa chỉ', 'Listening interface', 'Preshared key', 'Local ID', 'Remote ID', 'Local subnet', 'Remote subnet', 'Nhà sản xuất Inverter', 'Mã Logger', 'Mã công tơ 2 chiều'].includes(field as string);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -802,7 +804,30 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
                 <option value="Không">Không</option>
               </select>
             </div>
+            
             <FormField label="SN Nexatus" disabled={!canEditField('SN Nexatus')} value={formData['SN Nexatus']} onChange={(v) => setFormData({ ...formData, 'SN Nexatus': v })} />
+
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">Nhà sản xuất Inverter {isRequired('Nhà sản xuất Inverter') && <span className="text-red-400">*</span>}</label>
+              <select disabled={!canEditField('Nhà sản xuất Inverter')} value={formData['Nhà sản xuất Inverter']} onChange={(e) => setFormData({ ...formData, 'Nhà sản xuất Inverter': e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm disabled:opacity-60" required={isRequired('Nhà sản xuất Inverter')}>
+                <option value="">Chọn Nhà sản xuất Inverter...</option>
+                {Array.from(new Set(NSXIVTS)).map(item => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">Mã Logger {isRequired('Mã Logger') && <span className="text-red-400">*</span>}</label>
+              <select disabled={!canEditField('Mã Logger')} value={formData['Mã Logger']} onChange={(e) => setFormData({ ...formData, 'Mã Logger': e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm disabled:opacity-60" required={isRequired('Mã Logger')}>
+                <option value="">Chọn Mã Logger...</option>
+                {Array.from(new Set(LOGGERS)).map(item => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">Mã công tơ 2 chiều {isRequired('Mã công tơ 2 chiều') && <span className="text-red-400">*</span>}</label>
+              <select disabled={!canEditField('Mã công tơ 2 chiều')} value={formData['Mã công tơ 2 chiều']} onChange={(e) => setFormData({ ...formData, 'Mã công tơ 2 chiều': e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm disabled:opacity-60" required={isRequired('Mã công tơ 2 chiều')}>
+                <option value="">Chọn Mã công tơ 2 chiều...</option>
+                {Array.from(new Set(METERS)).map(item => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </div>
 
             <div className="col-span-full mt-4 mb-2"><h3 className="text-xs font-bold uppercase text-primary border-b border-primary/10 pb-2">Trạng Thái Vận Hành</h3></div>
             <div className="space-y-1.5">
