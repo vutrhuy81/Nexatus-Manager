@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 // ==========================================
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {app.listen(PORT, "0.0.0.0"
+if (!MONGODB_URI) {
   console.error("LỖI: Chưa cấu hình biến môi trường MONGODB_URI.");
   process.exit(1);
 }
