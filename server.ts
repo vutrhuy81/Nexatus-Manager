@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 // ==========================================
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
+if (!MONGODB_URI) {app.listen(PORT, "0.0.0.0"
   console.error("LỖI: Chưa cấu hình biến môi trường MONGODB_URI.");
   process.exit(1);
 }
@@ -179,7 +179,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  app.listen(PORT as number, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
   });
 }
