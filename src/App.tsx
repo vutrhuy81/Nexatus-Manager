@@ -14,7 +14,8 @@ import {
   User as UserIcon,
   Settings,
   Download,
-  Trash2 // Đã thêm icon Trash2 để làm nút xóa
+  Trash2, 
+  Copy
 } from 'lucide-react';
 import { User, UserRole, ProjectData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS } from './types';
 
@@ -182,6 +183,23 @@ export default function App() {
     } catch (error) {
       console.error('Lỗi khi gọi API xóa:', error);
     }
+  };
+
+  // Hàm xử lý nhân bản công trình
+  const handleClone = (project: ProjectData) => {
+    // Tách _id ra để loại bỏ nó, giữ lại các phần còn lại (rest)
+    const { _id, ...rest } = project;
+    
+    // Tạo object mới, có thể tự động thêm chữ "- Copy" vào tên để dễ phân biệt
+    const clonedProject = {
+      ...rest,
+      'Tên công trình': `${project['Tên công trình']} - Copy`,
+      'STT': '', // Xóa STT cũ để hệ thống tự động cấp STT mới khi lưu
+      'SN Nexatus': '', // (Tùy chọn) Thường mỗi trạm sẽ có Serial Number khác nhau nên có thể làm rỗng sẵn
+    } as ProjectData;
+
+    setEditingProject(clonedProject);
+    setIsModalOpen(true); // Mở popup form
   };
 
   const filteredData = useMemo(() => {
@@ -391,6 +409,15 @@ export default function App() {
                           className="p-2 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
                         >
                           <Edit2 size={16} />
+                        </button>
+
+                        {/* NÚT CLONE (MỚI THÊM) */}
+                        <button 
+                          onClick={() => handleClone(project)}
+                          title="Nhân bản công trình"
+                          className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-lg transition-all"
+                        >
+                          <Copy size={16} />
                         </button>
                         
                         {/* Nút Xóa chỉ hiện cho ADMIN */}
@@ -643,7 +670,9 @@ function ProjectModal({ user, project, onClose, onSave }: {
               <Settings className="text-white w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-serif font-bold">{project ? 'Cập Nhật Công Trình' : 'Thêm Công Trình Mới'}</h2>
+              <h2 className="text-xl font-serif font-bold">
+                {!project ? 'Thêm Công Trình Mới' : (project._id ? 'Cập Nhật Công Trình' : 'Nhân Bản Công Trình')}
+              </h2>
               <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Project Details</p>
             </div>
           </div>
