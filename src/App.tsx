@@ -16,7 +16,7 @@ import {
   Download,
   Trash2 // Đã thêm icon Trash2 để làm nút xóa
 } from 'lucide-react';
-import { User, UserRole, ProjectData, AGENCIES } from './types';
+import { User, UserRole, ProjectData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS } from './types';
 
 const USERS: Record<string, { password: string; role: UserRole; agencyName?: string }> = {
   'Admin': { password: '123456', role: 'ADMIN' },
@@ -685,11 +685,57 @@ function ProjectModal({ user, project, onClose, onSave }: {
               <h3 className="text-xs font-bold uppercase tracking-widest text-primary border-b border-primary/10 pb-2">Thông Số Kỹ Thuật (VPN Profile)</h3>
             </div>
 
-            <FormField label="Listening interface" required={isRequired('Listening interface')} disabled={!canEditField('Listening interface')} value={formData['Listening interface']} onChange={(v) => setFormData({ ...formData, 'Listening interface': v })} />
+            {/* Dropdown cho Listening interface */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">
+                Listening interface {isRequired('Listening interface') && <span className="text-red-400">*</span>}
+              </label>
+              <select 
+                disabled={!canEditField('Listening interface')}
+                value={formData['Listening interface']}
+                onChange={(e) => setFormData({ ...formData, 'Listening interface': e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm disabled:opacity-60"
+                required={isRequired('Listening interface')}
+              >
+                <option value="">Chọn Listening interface...</option>
+                {/* Dùng Array.from(new Set(...)) để loại bỏ các giá trị trùng lặp trong LISTENS nếu có */}
+                {Array.from(new Set(LISTENS)).map(item => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </div>
             <FormField label="Preshared key" disabled={!canEditField('Preshared key')} value={formData['Preshared key']} onChange={(v) => setFormData({ ...formData, 'Preshared key': v })} />
-            <FormField label="Local ID" required={isRequired('Local ID')} disabled={!canEditField('Local ID')} value={formData['Local ID']} onChange={(v) => setFormData({ ...formData, 'Local ID': v })} />
+            {/* Dropdown cho Local ID */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">
+                Local ID {isRequired('Local ID') && <span className="text-red-400">*</span>}
+              </label>
+              <select 
+                disabled={!canEditField('Local ID')}
+                value={formData['Local ID']}
+                onChange={(e) => setFormData({ ...formData, 'Local ID': e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm disabled:opacity-60"
+                required={isRequired('Local ID')}
+              >
+                <option value="">Chọn Local ID...</option>
+                {Array.from(new Set(LOCALIDS)).map(item => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </div>
             <FormField label="Remote ID" disabled={!canEditField('Remote ID')} value={formData['Remote ID']} onChange={(v) => setFormData({ ...formData, 'Remote ID': v })} />
-            <FormField label="Local subnet" required={isRequired('Local subnet')} disabled={!canEditField('Local subnet')} value={formData['Local subnet']} onChange={(v) => setFormData({ ...formData, 'Local subnet': v })} />
+            {/* Dropdown cho Local subnet */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">
+                Local subnet {isRequired('Local subnet') && <span className="text-red-400">*</span>}
+              </label>
+              <select 
+                disabled={!canEditField('Local subnet')}
+                value={formData['Local subnet']}
+                onChange={(e) => setFormData({ ...formData, 'Local subnet': e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm disabled:opacity-60"
+                required={isRequired('Local subnet')}
+              >
+                <option value="">Chọn Local subnet...</option>
+                {Array.from(new Set(LOCALSUBS)).map(item => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </div>
             <FormField label="Remote subnet" disabled={!canEditField('Remote subnet')} value={formData['Remote subnet']} onChange={(v) => setFormData({ ...formData, 'Remote subnet': v })} />
             
             <div className="col-span-full mt-4 mb-2">
