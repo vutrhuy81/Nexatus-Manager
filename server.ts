@@ -51,7 +51,7 @@ async function writeLog(user: string, action: string, details: string) {
 // ==========================================
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000; //const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 3000; //const PORT = Number(process.env.PORT) || 3000; 
 
   app.use(cors());
   app.use(express.json());
@@ -179,7 +179,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT as number, "0.0.0.0", () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
   });
 }
