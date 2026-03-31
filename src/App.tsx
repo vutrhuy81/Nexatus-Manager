@@ -18,7 +18,7 @@ import {
   Copy,
   Users // Thêm icon Users
 } from 'lucide-react';
-import { User, UserRole, ProjectData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS } from './types';
+import { User, UserRole, ProjectData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, MSXIVTS, LOGGERS, METERS } from './types';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
