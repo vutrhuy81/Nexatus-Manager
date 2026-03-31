@@ -41,6 +41,6 @@ export interface ProjectData {
 }
 
 export const AGENCIES = ['Hoà Phát', 'Damitech', 'Việt Long', 'AME', 'INewSolar', 'Vitech'];
-export const LISTENS = ['116.212.47.2', '103.78.7.6', '103.78.7.6', '202.60.107.187'];
+export const LISTENS = ['116.212.47.2', '103.78.7.6', '202.60.107.187'];
 export const LOCALIDS = ['Sophos_EVN', '%any', 'Null'];
 export const LOCALSUBS = ['10.21.10.64/27', '192.168.108.0/28', '192.168.108.0/28', '10.137.101.132/32'];
