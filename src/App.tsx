@@ -570,7 +570,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
             {role === 'AGENCY' && (
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">Đại lý *</label>
-                <select value={agencyName} onChange={setAgencyName} required className="w-full px-4 py-2.5 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
+                <select value={agencyName} onChange={(e) => setAgencyName(e.target.value)} required className="w-full px-4 py-2.5 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
                   <option value="">Chọn đại lý...</option>
                   {AGENCIES.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
