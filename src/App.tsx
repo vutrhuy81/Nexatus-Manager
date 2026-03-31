@@ -721,7 +721,7 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
     STT: '', 'Công ty điện lực': '', 'Đơn vị điện lực': '', 'Mã TBA': '', 'Mã xuất tuyến': '', 'Tên công trình': '',
     'Mã khách hàng': '', 'Tên đại lý': user.agencyName || '', 'Địa chỉ': '', 'Listening interface': '', 'Preshared key': '',
     'Local ID': '', 'Remote ID': '', 'Local subnet': '', 'Remote subnet': '', Lat: '', Long: '', 'CSTK DC (kWp)': '',
-    'CSTK AC (kW)': '', 'Công suất lắp đặt (kW)': '', 'Công suất tối đa (kW)': '', 'Zero export': 'Không', 'SN Nexatus': '',
+    'CSTK AC (kW)': '', 'Công suất lắp đặt (kW)': '', 'Công suất tối đa (kW)': '', 'Zero export': 'Không', 'SN Nexatus': '', 'SIM IP tĩnh': '',
     'Nhà sản xuất Inverter': '', 'Inverter No. / Inverter Type': '', 'Mã Logger': '', 'Mã công tơ 2 chiều': '',
     'Đã gửi cấu hình Nexatus': 'Nok', 'Đã upload cấu hình Nexatus': 'Nok', 'Đã tích hợp Nexatus': 'Nok', 'Đã nghiệm thu': 'Nok'
   });
@@ -811,6 +811,7 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
             </div>
             
             <FormField label="SN Nexatus" disabled={!canEditField('SN Nexatus')} value={formData['SN Nexatus']} onChange={(v) => setFormData({ ...formData, 'SN Nexatus': v })} />
+            <FormField label="SIM Ip tĩnh" disabled={!canEditField('SIM Ip tĩnh')} value={formData['SIM Ip tĩnh']} onChange={(v) => setFormData({ ...formData, 'SIM Ip tĩnh': v })} />
 
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">Nhà sản xuất Inverter {isRequired('Nhà sản xuất Inverter') && <span className="text-red-400">*</span>}</label>
