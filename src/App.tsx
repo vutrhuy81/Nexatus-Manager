@@ -550,7 +550,8 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
       <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl flex flex-col">
         
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        {/* HEADER MODAL */}
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-purple-500 p-2 rounded-xl">
               <Users className="text-white w-5 h-5" />
@@ -565,9 +566,11 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8">
-          {/* Form Thêm/Sửa User */}
-          <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        {/* BODY MODAL - ĐÃ SỬA LẠI LAYOUT */}
+        <div className="flex-1 overflow-hidden p-6 flex flex-col gap-6">
+          
+          {/* Form Thêm/Sửa User (Cố định không cuộn) */}
+          <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4 items-end shrink-0">
             <FormField label="Username" value={username} onChange={setUsername} required />
             <FormField label="Password" value={password} onChange={setPassword} required />
             
@@ -602,10 +605,11 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
             </div>
           </form>
 
-          {/* Bảng Danh sách User */}
-          <div className="border border-gray-100 rounded-2xl overflow-hidden">
+          {/* Bảng Danh sách User (Có thanh cuộn riêng) */}
+          <div className="flex-1 border border-gray-100 rounded-2xl overflow-auto bg-white relative">
             <table className="w-full text-left">
-              <thead className="bg-gray-50">
+              {/* Tiêu đề bảng dính chặt (Sticky) */}
+              <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500">Username</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500">Password</th>
@@ -638,6 +642,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
               </tbody>
             </table>
           </div>
+
         </div>
       </motion.div>
     </div>
