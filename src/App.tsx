@@ -512,7 +512,7 @@ export default function App() {
                       <td className="px-4 py-4 text-right flex justify-end gap-1">
                         {/* NÚT DOWNLOAD FILE CẤU HÌNH */}
                         <a 
-                          href="https://drive.google.com/file/d/1vmGEETpSPDgCDaYS5BoH2HoGATEtJ-R6/view?usp=sharing"
+                          //href="https://drive.google.com/file/d/1vmGEETpSPDgCDaYS5BoH2HoGATEtJ-R6/view?usp=sharing"
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Tải file cấu hình"
