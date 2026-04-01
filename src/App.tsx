@@ -457,8 +457,7 @@ export default function App() {
                       animate={{ height: 'auto', opacity: 1 }} 
                       exit={{ height: 0, opacity: 0 }} 
                       className="bg-primary/5 border-b border-gray-100"
-                    >
-                      <td className="px-2 py-2"><input type="text" placeholder="Lọc..." value={columnFilters['STT'] || ''} onChange={(e) => handleColumnFilterChange('STT', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
+                    >                      
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc Tên/Địa chỉ..." value={columnFilters['Tên công trình'] || ''} onChange={(e) => handleColumnFilterChange('Tên công trình', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc Đại lý..." value={columnFilters['Tên đại lý'] || ''} onChange={(e) => handleColumnFilterChange('Tên đại lý', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc Mã KH..." value={columnFilters['Mã khách hàng'] || ''} onChange={(e) => handleColumnFilterChange('Mã khách hàng', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
