@@ -513,6 +513,7 @@ export default function App() {
                         {/* NÚT DOWNLOAD FILE CẤU HÌNH */}
                         <a 
                           //href="https://drive.google.com/file/d/1vmGEETpSPDgCDaYS5BoH2HoGATEtJ-R6/view?usp=sharing"
+                          href={project['Link cấu hình']}
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Tải file cấu hình"
