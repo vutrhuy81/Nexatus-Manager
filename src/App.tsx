@@ -255,7 +255,6 @@ export default function App() {
     return sortConfig.direction === 'asc' ? <ChevronUp size={12} className="text-primary" /> : <ChevronDown size={12} className="text-primary" />;
   };
 
-
   if (!user) {
     return (
       <div className="min-h-screen bg-blue-50/30 flex items-center justify-center p-4 font-sans">
@@ -329,6 +328,7 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* CÁC NÚT CHỨC NĂNG DÀNH CHO ADMIN */}
               {user.role === 'ADMIN' && (
                 <>
                   <button 
@@ -424,10 +424,7 @@ export default function App() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50/50">
                 {/* HÀNG TIÊU ĐỀ: CLick để sort */}
-                <tr className="border-b border-gray-100">
-                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('STT')}>
-                    <div className="flex items-center gap-1">STT <SortIcon columnKey="STT" /></div>
-                  </th>
+                <tr className="border-b border-gray-100">                  
                   <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('Tên công trình')}>
                     <div className="flex items-center gap-1">Tên Công Trình <SortIcon columnKey="Tên công trình" /></div>
                   </th>
@@ -449,7 +446,7 @@ export default function App() {
                   <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('Đã nghiệm thu')}>
                     <div className="flex items-center gap-1">Nghiệm thu <SortIcon columnKey="Đã nghiệm thu" /></div>
                   </th>
-                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-right">Thao Tác</th>
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-right min-w-[140px]">Thao Tác</th>
                 </tr>
 
                 {/* HÀNG BỘ LỌC (Chỉ hiện khi bấm nút Filter) */}
@@ -515,6 +512,17 @@ export default function App() {
                         <StatusBadge status={project['Đã nghiệm thu']} />
                       </td>
                       <td className="px-4 py-4 text-right flex justify-end gap-1">
+                        {/* NÚT DOWNLOAD FILE CẤU HÌNH */}
+                        <a 
+                          href="https://drive.google.com/file/d/1vmGEETpSPDgCDaYS5BoH2HoGATEtJ-R6/view?usp=sharing"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Tải file cấu hình"
+                          className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all flex items-center justify-center"
+                        >
+                          <Download size={16} />
+                        </a>
+
                         <button 
                           onClick={() => {
                             setEditingProject(project);
