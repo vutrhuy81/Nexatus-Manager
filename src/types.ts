@@ -43,7 +43,7 @@ export interface ProjectData {
 
 export const AGENCIES = ['Hoà Phát', 'Damitech', 'Việt Long', 'AME', 'INewSolar', 'Vitech'];
 export const LISTENS = ['116.212.47.2 (NPC)', '103.78.7.6 (CPC2/SPC)', '116.105.225.236 (CPC1)', '202.60.107.187 (HCMC)'];
-export const LOCALIDS = ['Sophos_EVN (NPC)', '%any (HCMC)', 'Null (CPC)'];
+export const LOCALIDS = ['Sophos_EVN (NPC)', '%any (HCMC)', 'Null (CPC/SPC)'];
 export const LOCALSUBS = ['10.21.10.64/27 (NPC)', '192.168.108.0/28 (CPC2/SPC)', '10.112.191.0/30 (CPC1)', '10.137.101.132/32 (HCMC)'];
 export const NSXIVTS = ['HUAWEI', 'SUNGROW', 'SMA', 'SOLIS', 'DEYE', 'FRONIUS', 'ABB', 'GOOGWE', 'GROWATT', 'KEHUA', 'AUXSOL', 'SAJ'];
 export const LOGGERS = ['FRONIUS', 'ABB_PVS', 'ABB_TRIO20', 'GOOGWE', 'GROWATT', 'HUAWEI', 'KEHUA', 'SMA', 'SOLIS', 'SUNGROW', 'DEYE_SUN_G03', 'SMART_HUAWEI', 'SMART_SUNGROW', 'SMART_SAJ_C1', 'SMART_SAJ_SEC', 'SMART_SOLIS_S3', 'SMART_AUXSOL', 'SMART_SMA'];
