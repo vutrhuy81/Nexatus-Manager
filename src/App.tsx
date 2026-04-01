@@ -486,8 +486,7 @@ export default function App() {
                       key={project._id || project.STT} 
                       className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
                       title={`Tên công trình: ${project['Tên công trình']}\nRemote Subnet: ${project['Remote subnet'] || 'Chưa có'}`}
-                    >
-                      <td className="px-4 py-4 text-sm font-mono text-gray-400">{project.STT}</td>
+                    >                     
                       <td className="px-4 py-4">
                         <div className="font-semibold text-gray-900 line-clamp-1">{project['Tên công trình']}</div>
                         <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">{project['Địa chỉ']}</div>
