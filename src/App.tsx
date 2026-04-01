@@ -16,7 +16,12 @@ import {
   Download,
   Trash2, 
   Copy,
-  Users // Thêm icon Users
+  Users,
+  PieChart,
+  Filter,         // Icon cho nút Bật bộ lọc
+  ChevronUp,      // Icon sắp xếp tăng
+  ChevronDown,    // Icon sắp xếp giảm
+  ArrowUpDown     // Icon có thể sắp xếp
 } from 'lucide-react';
 import { User, UserRole, ProjectData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS } from './types';
 
@@ -26,10 +31,15 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // State quản lý Lọc và Sắp xếp cột
+  const [showFilters, setShowFilters] = useState(false);
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
+  
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false); // Modal quản lý user
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false); 
   
   const [editingProject, setEditingProject] = useState<ProjectData | null>(null);
   const [loginError, setLoginError] = useState('');
@@ -57,7 +67,6 @@ export default function App() {
     }
   };
 
-  // ĐÃ SỬA: Gọi API Login thay vì check object hardcode
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -176,21 +185,76 @@ export default function App() {
     setIsModalOpen(true);
   };
 
+  // Logic Sắp xếp
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' | null = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    else if (sortConfig.key === key && sortConfig.direction === 'desc') direction = null;
+    setSortConfig({ key, direction });
+  };
+
+  const handleColumnFilterChange = (key: string, value: string) => {
+    setColumnFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Memo dữ liệu đã lọc và sắp xếp
   const filteredData = useMemo(() => {
     let result = data;
+    
+    // 1. Lọc theo Đại lý của User
     if (user?.role === 'AGENCY' && user.agencyName) {
       result = result.filter(p => p['Tên đại lý'] === user.agencyName);
     }
+
+    // 2. Tìm kiếm toàn cục
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
       result = result.filter(p => 
-        p['Tên công trình'].toLowerCase().includes(lowerSearch) ||
-        p['Mã khách hàng'].toLowerCase().includes(lowerSearch) ||
-        p['Tên đại lý'].toLowerCase().includes(lowerSearch)
+        (p['Tên công trình'] || '').toLowerCase().includes(lowerSearch) ||
+        (p['Mã khách hàng'] || '').toLowerCase().includes(lowerSearch) ||
+        (p['Tên đại lý'] || '').toLowerCase().includes(lowerSearch)
       );
     }
+
+    // 3. Lọc theo từng cột
+    Object.keys(columnFilters).forEach(key => {
+      const filterValue = columnFilters[key];
+      if (filterValue) {
+        const lowerFilter = filterValue.toLowerCase();
+        result = result.filter(p => String(p[key as keyof ProjectData] || '').toLowerCase().includes(lowerFilter));
+      }
+    });
+
+    // 4. Sắp xếp dữ liệu
+    if (sortConfig.key && sortConfig.direction) {
+      result = [...result].sort((a, b) => {
+        const valA = String(a[sortConfig.key as keyof ProjectData] || '');
+        const valB = String(b[sortConfig.key as keyof ProjectData] || '');
+        
+        // Cố gắng parse thành số để sắp xếp chuẩn xác (ví dụ STT, KWp)
+        const numA = parseFloat(valA);
+        const numB = parseFloat(valB);
+        
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return sortConfig.direction === 'asc' ? numA - numB : numB - numA;
+        }
+        
+        // Sắp xếp chuỗi thông thường
+        return sortConfig.direction === 'asc' 
+          ? valA.localeCompare(valB) 
+          : valB.localeCompare(valA);
+      });
+    }
+
     return result;
-  }, [data, user, searchTerm]);
+  }, [data, user, searchTerm, columnFilters, sortConfig]);
+
+  // UI Component cho Icon sắp xếp
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig.key !== columnKey || !sortConfig.direction) return <ArrowUpDown size={12} className="opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp size={12} className="text-primary" /> : <ChevronDown size={12} className="text-primary" />;
+  };
+
 
   if (!user) {
     return (
@@ -265,7 +329,6 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* CÁC NÚT CHỨC NĂNG DÀNH CHO ADMIN */}
               {user.role === 'ADMIN' && (
                 <>
                   <button 
@@ -307,18 +370,30 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-8">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text"
-              placeholder="Tìm kiếm công trình, khách hàng..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-sm"
-            />
+          <div className="flex gap-2 w-full md:w-auto">
+            <div className="relative w-full md:w-96">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text"
+                placeholder="Tìm kiếm chung..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-sm"
+              />
+            </div>
+            {/* NÚT BẬT TẮT BỘ LỌC CỘT */}
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              title="Bật/tắt bộ lọc từng cột"
+              className={`flex items-center justify-center p-3 rounded-2xl border transition-all ${
+                showFilters ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50 shadow-sm'
+              }`}
+            >
+              <Filter size={20} />
+            </button>
           </div>
           
-          <div className="flex gap-3 w-full md:w-auto">
+          <div className="flex gap-3 w-full md:w-auto mt-4 md:mt-0">
             <button 
               onClick={handleExportData}
               className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white text-gray-600 px-6 py-3 rounded-2xl font-semibold border border-gray-200 hover:bg-gray-50 transition-all shadow-sm"
@@ -341,63 +416,105 @@ export default function App() {
           </div>
         </div>
 
+        {/* BIỂU ĐỒ PIE CHART THỐNG KÊ ĐẠI LÝ */}
+        <AgencyPieChart data={filteredData} />
+
         <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50/50 border-b border-gray-100">
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">STT</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Tên Công Trình</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Đại Lý</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Mã Khách Hàng</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Send Nex.Cfg</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Upload Nex.Cfg</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Tích Hợp RMCS</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400">Nghiệm thu</th>
-                  <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-right">Thao Tác</th>
+              <thead className="bg-gray-50/50">
+                {/* HÀNG TIÊU ĐỀ: CLick để sort */}
+                <tr className="border-b border-gray-100">
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('STT')}>
+                    <div className="flex items-center gap-1">STT <SortIcon columnKey="STT" /></div>
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('Tên công trình')}>
+                    <div className="flex items-center gap-1">Tên Công Trình <SortIcon columnKey="Tên công trình" /></div>
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('Tên đại lý')}>
+                    <div className="flex items-center gap-1">Đại Lý <SortIcon columnKey="Tên đại lý" /></div>
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('Mã khách hàng')}>
+                    <div className="flex items-center gap-1">Mã KH <SortIcon columnKey="Mã khách hàng" /></div>
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('Đã gửi cấu hình Nexatus')}>
+                    <div className="flex items-center gap-1">Send Nex.Cfg <SortIcon columnKey="Đã gửi cấu hình Nexatus" /></div>
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('Đã upload cấu hình Nexatus')}>
+                    <div className="flex items-center gap-1">Upload Nex.Cfg <SortIcon columnKey="Đã upload cấu hình Nexatus" /></div>
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('Đã tích hợp Nexatus')}>
+                    <div className="flex items-center gap-1">Tích Hợp RMCS <SortIcon columnKey="Đã tích hợp Nexatus" /></div>
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('Đã nghiệm thu')}>
+                    <div className="flex items-center gap-1">Nghiệm thu <SortIcon columnKey="Đã nghiệm thu" /></div>
+                  </th>
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-right">Thao Tác</th>
                 </tr>
+
+                {/* HÀNG BỘ LỌC (Chỉ hiện khi bấm nút Filter) */}
+                <AnimatePresence>
+                  {showFilters && (
+                    <motion.tr 
+                      initial={{ height: 0, opacity: 0 }} 
+                      animate={{ height: 'auto', opacity: 1 }} 
+                      exit={{ height: 0, opacity: 0 }} 
+                      className="bg-primary/5 border-b border-gray-100"
+                    >
+                      <td className="px-2 py-2"><input type="text" placeholder="Lọc..." value={columnFilters['STT'] || ''} onChange={(e) => handleColumnFilterChange('STT', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
+                      <td className="px-2 py-2"><input type="text" placeholder="Lọc Tên/Địa chỉ..." value={columnFilters['Tên công trình'] || ''} onChange={(e) => handleColumnFilterChange('Tên công trình', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
+                      <td className="px-2 py-2"><input type="text" placeholder="Lọc Đại lý..." value={columnFilters['Tên đại lý'] || ''} onChange={(e) => handleColumnFilterChange('Tên đại lý', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
+                      <td className="px-2 py-2"><input type="text" placeholder="Lọc Mã KH..." value={columnFilters['Mã khách hàng'] || ''} onChange={(e) => handleColumnFilterChange('Mã khách hàng', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
+                      <td className="px-2 py-2"><input type="text" placeholder="Ok/Nok..." value={columnFilters['Đã gửi cấu hình Nexatus'] || ''} onChange={(e) => handleColumnFilterChange('Đã gửi cấu hình Nexatus', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
+                      <td className="px-2 py-2"><input type="text" placeholder="Ok/Nok..." value={columnFilters['Đã upload cấu hình Nexatus'] || ''} onChange={(e) => handleColumnFilterChange('Đã upload cấu hình Nexatus', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
+                      <td className="px-2 py-2"><input type="text" placeholder="Ok/Nok..." value={columnFilters['Đã tích hợp Nexatus'] || ''} onChange={(e) => handleColumnFilterChange('Đã tích hợp Nexatus', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
+                      <td className="px-2 py-2"><input type="text" placeholder="Ok/Nok..." value={columnFilters['Đã nghiệm thu'] || ''} onChange={(e) => handleColumnFilterChange('Đã nghiệm thu', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
+                      <td></td>
+                    </motion.tr>
+                  )}
+                </AnimatePresence>
               </thead>
+
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">Đang tải dữ liệu...</td>
+                    <td colSpan={9} className="px-6 py-12 text-center text-gray-400 italic">Đang tải dữ liệu...</td>
                   </tr>
                 ) : filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">Không tìm thấy dữ liệu</td>
+                    <td colSpan={9} className="px-6 py-12 text-center text-gray-400 italic">Không tìm thấy dữ liệu phù hợp</td>
                   </tr>
                 ) : (
                   filteredData.map((project) => (
-                    // ĐÃ SỬA Ở ĐÂY: Thêm thuộc tính title hiển thị khi hover
                     <tr 
                       key={project._id || project.STT} 
                       className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
                       title={`Tên công trình: ${project['Tên công trình']}\nRemote Subnet: ${project['Remote subnet'] || 'Chưa có'}`}
                     >
-                      <td className="px-6 py-4 text-sm font-mono text-gray-400">{project.STT}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 text-sm font-mono text-gray-400">{project.STT}</td>
+                      <td className="px-4 py-4">
                         <div className="font-semibold text-gray-900 line-clamp-1">{project['Tên công trình']}</div>
                         <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">{project['Địa chỉ']}</div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                           {project['Tên đại lý']}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-600">{project['Mã khách hàng']}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 text-sm font-medium text-gray-600">{project['Mã khách hàng']}</td>
+                      <td className="px-4 py-4">
                         <StatusBadge status={project['Đã gửi cấu hình Nexatus']} />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <StatusBadge status={project['Đã upload cấu hình Nexatus']} />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <StatusBadge status={project['Đã tích hợp Nexatus']} />
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4">
                         <StatusBadge status={project['Đã nghiệm thu']} />
                       </td>
-                      <td className="px-6 py-4 text-right flex justify-end gap-1">
+                      <td className="px-4 py-4 text-right flex justify-end gap-1">
                         <button 
                           onClick={() => {
                             setEditingProject(project);
@@ -464,7 +581,69 @@ export default function App() {
 }
 
 // ============================================================================
-// COMPONENT QUẢN LÝ USER (MỚI)
+// COMPONENT BIỂU ĐỒ PIE CHART
+// ============================================================================
+function AgencyPieChart({ data }: { data: ProjectData[] }) {
+  const stats = useMemo(() => {
+    const counts: Record<string, number> = {};
+    data.forEach(p => {
+      const agency = p['Tên đại lý'];
+      if (agency) counts[agency] = (counts[agency] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value); 
+  }, [data]);
+
+  if (stats.length === 0) return null;
+
+  const total = stats.reduce((sum, item) => sum + item.value, 0);
+  let currentAngle = 0;
+  
+  const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1', '#14b8a6'];
+
+  const conicString = stats.map((item, i) => {
+    const angle = (item.value / total) * 360;
+    const str = `${colors[i % colors.length]} ${currentAngle}deg ${currentAngle + angle}deg`;
+    currentAngle += angle;
+    return str;
+  }).join(', ');
+
+  return (
+    <div className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row items-center gap-8">
+      <div className="flex flex-col gap-1 md:w-1/3">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="bg-purple-100 p-1.5 rounded-lg text-purple-600">
+            <PieChart size={18} />
+          </div>
+          <h3 className="text-lg font-serif font-bold text-gray-800">Thống Kê Đại Lý</h3>
+        </div>
+        <p className="text-xs text-gray-500">Tỉ lệ phân bổ dựa trên {total} công trình đang hiển thị</p>
+      </div>
+      
+      <div className="flex items-center gap-8 w-full justify-around md:justify-start">
+        <div 
+          style={{ background: `conic-gradient(${conicString})` }} 
+          className="w-28 h-28 md:w-32 md:h-32 rounded-full shadow-md shrink-0 border-4 border-white transition-all hover:scale-105"
+        />
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm w-full max-w-md">
+          {stats.map((item, i) => (
+            <div key={item.name} className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: colors[i % colors.length] }} />
+              <span className="font-medium text-gray-700 truncate max-w-[100px] md:max-w-[150px]" title={item.name}>
+                {item.name}
+              </span>
+              <span className="text-gray-400 font-mono text-xs">({((item.value / total) * 100).toFixed(1)}%)</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// COMPONENT QUẢN LÝ USER
 // ============================================================================
 function UserManagementModal({ currentUser, onClose }: { currentUser: User; onClose: () => void }) {
   const [usersList, setUsersList] = useState<any[]>([]);
@@ -566,10 +745,8 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
           </button>
         </div>
 
-        {/* BODY MODAL - ĐÃ SỬA LẠI LAYOUT */}
+        {/* BODY MODAL */}
         <div className="flex-1 overflow-hidden p-6 flex flex-col gap-6">
-          
-          {/* Form Thêm/Sửa User (Cố định không cuộn) */}
           <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4 items-end shrink-0">
             <FormField label="Username" value={username} onChange={setUsername} required />
             <FormField label="Password" value={password} onChange={setPassword} required />
@@ -605,10 +782,8 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
             </div>
           </form>
 
-          {/* Bảng Danh sách User (Có thanh cuộn riêng) */}
           <div className="flex-1 border border-gray-100 rounded-2xl overflow-auto bg-white relative">
             <table className="w-full text-left">
-              {/* Tiêu đề bảng dính chặt (Sticky) */}
               <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500">Username</th>
@@ -642,7 +817,6 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
               </tbody>
             </table>
           </div>
-
         </div>
       </motion.div>
     </div>
@@ -816,8 +990,8 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
             </div>
             
             <FormField label="SN Nexatus" disabled={!canEditField('SN Nexatus')} value={formData['SN Nexatus']} onChange={(v) => setFormData({ ...formData, 'SN Nexatus': v })} />
-            <FormField label="SIM Ip tĩnh" disabled={!canEditField('SIM Ip tĩnh')} value={formData['SIM Ip tĩnh']} onChange={(v) => setFormData({ ...formData, 'SIM Ip tĩnh': v })} />
-            <FormField label="Router Ip tĩnh" disabled={!canEditField('Router Ip tĩnh')} value={formData['Router Ip tĩnh']} onChange={(v) => setFormData({ ...formData, 'Router Ip tĩnh': v })} />
+            <FormField label="SIM IP tĩnh" disabled={!canEditField('SIM IP tĩnh')} value={formData['SIM IP tĩnh']} onChange={(v) => setFormData({ ...formData, 'SIM IP tĩnh': v })} />
+            <FormField label="Router IP tĩnh" disabled={!canEditField('Router IP tĩnh')} value={formData['Router IP tĩnh']} onChange={(v) => setFormData({ ...formData, 'Router IP tĩnh': v })} />
             
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">Nhà sản xuất Inverter {isRequired('Nhà sản xuất Inverter') && <span className="text-red-400">*</span>}</label>
