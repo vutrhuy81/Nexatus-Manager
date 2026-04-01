@@ -38,6 +38,7 @@ export interface ProjectData {
   'Đã upload cấu hình Nexatus': string;
   'Đã tích hợp Nexatus': string;
   'Đã nghiệm thu': string;
+  'Link cấu hình': string;
 }
 
 export const AGENCIES = ['Hoà Phát', 'Damitech', 'Việt Long', 'AME', 'INewSolar', 'Vitech'];
