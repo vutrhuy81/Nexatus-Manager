@@ -30,6 +30,8 @@ export interface ProjectData {
   'Công suất tối đa (kW)': string;
   'Zero export': string;
   'SN Nexatus': string;
+  'SIM IP tĩnh': string;
+  'Router IP tĩnh': string;
   'Nhà sản xuất Inverter': string;
   'Inverter No. / Inverter Type': string;
   'Mã Logger': string;
@@ -41,15 +43,15 @@ export interface ProjectData {
   'Link cấu hình'?: string;
 }
 
-// INTERFACE MỚI CHO PHẢN ÁNH SỰ CỐ
+// THÊM MỚI: Interface cho Phản ánh sự cố
 export interface IncidentData {
   _id?: string;
   'Tên đại lý': string;
   'Công trình': string;
   'Mô tả sự cố': string;
-  'Ảnh'?: string; // Lưu dưới dạng chuỗi Base64
+  'Ảnh'?: string; // Lưu Base64
   'Ngày giờ phản ánh': string;
-  'Kết quả xử lý': string; // "Chưa xử lý" | "Ok" | "Nok"
+  'Kết quả xử lý': string; 
   'Nguyên nhân và giải pháp': string;
 }
 
