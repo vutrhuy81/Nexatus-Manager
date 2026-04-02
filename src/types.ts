@@ -38,7 +38,19 @@ export interface ProjectData {
   'Đã upload cấu hình Nexatus': string;
   'Đã tích hợp Nexatus': string;
   'Đã nghiệm thu': string;
-  'Link cấu hình': string;
+  'Link cấu hình'?: string;
+}
+
+// INTERFACE MỚI CHO PHẢN ÁNH SỰ CỐ
+export interface IncidentData {
+  _id?: string;
+  'Tên đại lý': string;
+  'Công trình': string;
+  'Mô tả sự cố': string;
+  'Ảnh'?: string; // Lưu dưới dạng chuỗi Base64
+  'Ngày giờ phản ánh': string;
+  'Kết quả xử lý': string; // "Chưa xử lý" | "Ok" | "Nok"
+  'Nguyên nhân và giải pháp': string;
 }
 
 export const AGENCIES = ['Hoà Phát', 'Damitech', 'Việt Long', 'AME', 'INewSolar', 'Vitech'];
@@ -48,4 +60,3 @@ export const LOCALSUBS = ['10.21.10.64/27 (NPC)', '192.168.108.0/28 (CPC2/SPC)',
 export const NSXIVTS = ['HUAWEI', 'SUNGROW', 'SMA', 'SOLIS', 'DEYE', 'FRONIUS', 'ABB', 'GOOGWE', 'GROWATT', 'KEHUA', 'AUXSOL', 'SAJ'];
 export const LOGGERS = ['FRONIUS', 'ABB_PVS', 'ABB_TRIO20', 'GOOGWE', 'GROWATT', 'HUAWEI', 'KEHUA', 'SMA', 'SOLIS', 'SUNGROW', 'DEYE_SUN_G03', 'SMART_HUAWEI', 'SMART_SUNGROW', 'SMART_SAJ_C1', 'SMART_SAJ_SEC', 'SMART_SOLIS_S3', 'SMART_AUXSOL', 'SMART_SMA'];
 export const METERS = ['DT03MRF', 'SMARTLOGGER HUAWEI', 'ACREL DTSD1352', 'JANITZA UMG604 SUM', 'JANITZA UMG604 SINGLE', 'SMARTLOGGER SAJ C1', 'SMARTLOGGER SAJ SEC', 'SCHNEIDER PM51XX 53XX', 'EASTRON SDM630MCT', 'EASTRON SDM630MCT', 'SMARTLOGGER AUXSOL', 'SMARTLOGGER SMA'];
-
