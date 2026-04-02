@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, 
@@ -22,8 +22,7 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUpDown,
-  AlertTriangle, // Icon Sự cố
-  Image as ImageIcon // Icon Upload ảnh
+  AlertTriangle // Icon cho Sự cố
 } from 'lucide-react';
 import { User, ProjectData, IncidentData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS } from './types';
 
@@ -41,7 +40,7 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false); 
-  const [isIncidentListOpen, setIsIncidentListOpen] = useState(false); // Modal ds sự cố
+  const [isIncidentListOpen, setIsIncidentListOpen] = useState(false);
   
   const [editingProject, setEditingProject] = useState<ProjectData | null>(null);
   const [loginError, setLoginError] = useState('');
@@ -320,7 +319,7 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* NÚT QUẢN LÝ SỰ CỐ DÀNH CHO MỌI ROLE */}
+              {/* NÚT SỰ CỐ */}
               <button 
                 onClick={() => setIsIncidentListOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-100 hover:bg-orange-100 transition-all text-sm font-semibold"
@@ -511,6 +510,7 @@ export default function App() {
                         <StatusBadge status={project['Đã nghiệm thu']} />
                       </td>
                       <td className="px-4 py-4 text-right flex justify-end gap-1">
+                        
                         {project['Link cấu hình'] ? (
                           <a 
                             href={project['Link cấu hình']}
@@ -604,7 +604,7 @@ export default function App() {
 }
 
 // ============================================================================
-// COMPONENT: QUẢN LÝ SỰ CỐ (MỚI)
+// COMPONENT: QUẢN LÝ SỰ CỐ (TICKETING)
 // ============================================================================
 function IncidentListModal({ currentUser, projects, onClose }: { currentUser: User; projects: ProjectData[]; onClose: () => void }) {
   const [incidents, setIncidents] = useState<IncidentData[]>([]);
@@ -620,7 +620,7 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     try {
       const res = await fetch('/api/incidents', { headers: { 'x-user-role': currentUser.role } });
       const data = await res.json();
-      // Filter if Agency
+      // Nếu là Agency thì chỉ thấy sự cố của đại lý mình
       if (currentUser.role === 'AGENCY') {
         setIncidents(data.filter((i: IncidentData) => i['Tên đại lý'] === currentUser.agencyName));
       } else {
@@ -709,7 +709,7 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
           projects={projects}
           incident={editingIncident}
           onClose={() => setIsFormOpen(false)}
-          onSave={async (data) => {
+          onSave={async (data: IncidentData) => {
             await fetch('/api/incidents', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -727,7 +727,7 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
 function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any) {
   const isAgency = currentUser.role === 'AGENCY';
   
-  // Lọc list công trình theo Agency hiện tại (nếu là agency)
+  // Lọc list công trình theo Agency hiện tại
   const agencyProjects = isAgency 
     ? projects.filter((p: ProjectData) => p['Tên đại lý'] === currentUser.agencyName)
     : projects;
@@ -761,11 +761,11 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
       </div>
       <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="flex-1 overflow-y-auto p-6 space-y-4">
         
-        {/* PHẦN DÀNH CHO AGENCY (Admin/Op vẫn xem được) */}
+        {/* PHẦN DÀNH CHO AGENCY VÀ KHAI BÁO */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Công trình *</label>
           <select 
-            disabled={!isAgency && !!incident} // Admin không nên sửa tên công trình của agency sau khi đã tạo
+            disabled={!isAgency && !!incident} 
             required 
             value={formData['Công trình']} 
             onChange={e => setFormData({...formData, 'Công trình': e.target.value})}
@@ -800,7 +800,7 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
           )}
         </div>
 
-        {/* PHẦN DÀNH CHO ADMIN / OPERATION */}
+        {/* PHẦN DÀNH CHO ADMIN / OPERATION CẬP NHẬT KẾT QUẢ */}
         <div className="pt-4 border-t border-gray-100 mt-4">
           <h3 className="text-xs font-bold uppercase text-primary mb-3">Phần Dành Cho Bộ Phận Xử Lý</h3>
           <div className="space-y-1.5 mb-4">
@@ -837,7 +837,6 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
     </motion.div>
   );
 }
-
 
 // ============================================================================
 // COMPONENT BIỂU ĐỒ PIE CHART
