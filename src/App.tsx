@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, 
@@ -19,12 +18,14 @@ import {
   Copy,
   Users,
   PieChart,
-  Filter,         // Icon cho nút Bật bộ lọc
-  ChevronUp,      // Icon sắp xếp tăng
-  ChevronDown,    // Icon sắp xếp giảm
-  ArrowUpDown     // Icon có thể sắp xếp
+  Filter,
+  ChevronUp,
+  ChevronDown,
+  ArrowUpDown,
+  AlertTriangle, // Icon Sự cố
+  Image as ImageIcon // Icon Upload ảnh
 } from 'lucide-react';
-import { User, UserRole, ProjectData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS } from './types';
+import { User, ProjectData, IncidentData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS } from './types';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -32,7 +33,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // State quản lý Lọc và Sắp xếp cột
   const [showFilters, setShowFilters] = useState(false);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
@@ -41,11 +41,11 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false); 
+  const [isIncidentListOpen, setIsIncidentListOpen] = useState(false); // Modal ds sự cố
   
   const [editingProject, setEditingProject] = useState<ProjectData | null>(null);
   const [loginError, setLoginError] = useState('');
 
-  // Login Form State
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -186,7 +186,6 @@ export default function App() {
     setIsModalOpen(true);
   };
 
-  // Logic Sắp xếp
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' | null = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
@@ -198,16 +197,13 @@ export default function App() {
     setColumnFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  // Memo dữ liệu đã lọc và sắp xếp
   const filteredData = useMemo(() => {
     let result = data;
     
-    // 1. Lọc theo Đại lý của User
     if (user?.role === 'AGENCY' && user.agencyName) {
       result = result.filter(p => p['Tên đại lý'] === user.agencyName);
     }
 
-    // 2. Tìm kiếm toàn cục
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
       result = result.filter(p => 
@@ -217,7 +213,6 @@ export default function App() {
       );
     }
 
-    // 3. Lọc theo từng cột
     Object.keys(columnFilters).forEach(key => {
       const filterValue = columnFilters[key];
       if (filterValue) {
@@ -226,13 +221,11 @@ export default function App() {
       }
     });
 
-    // 4. Sắp xếp dữ liệu
     if (sortConfig.key && sortConfig.direction) {
       result = [...result].sort((a, b) => {
         const valA = String(a[sortConfig.key as keyof ProjectData] || '');
         const valB = String(b[sortConfig.key as keyof ProjectData] || '');
         
-        // Cố gắng parse thành số để sắp xếp chuẩn xác (ví dụ STT, KWp)
         const numA = parseFloat(valA);
         const numB = parseFloat(valB);
         
@@ -240,7 +233,6 @@ export default function App() {
           return sortConfig.direction === 'asc' ? numA - numB : numB - numA;
         }
         
-        // Sắp xếp chuỗi thông thường
         return sortConfig.direction === 'asc' 
           ? valA.localeCompare(valB) 
           : valB.localeCompare(valA);
@@ -250,7 +242,6 @@ export default function App() {
     return result;
   }, [data, user, searchTerm, columnFilters, sortConfig]);
 
-  // UI Component cho Icon sắp xếp
   const SortIcon = ({ columnKey }: { columnKey: string }) => {
     if (sortConfig.key !== columnKey || !sortConfig.direction) return <ArrowUpDown size={12} className="opacity-30" />;
     return sortConfig.direction === 'asc' ? <ChevronUp size={12} className="text-primary" /> : <ChevronDown size={12} className="text-primary" />;
@@ -329,7 +320,15 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* CÁC NÚT CHỨC NĂNG DÀNH CHO ADMIN */}
+              {/* NÚT QUẢN LÝ SỰ CỐ DÀNH CHO MỌI ROLE */}
+              <button 
+                onClick={() => setIsIncidentListOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-100 hover:bg-orange-100 transition-all text-sm font-semibold"
+              >
+                <AlertTriangle size={16} />
+                <span className="hidden sm:inline">Sự Cố</span>
+              </button>
+
               {user.role === 'ADMIN' && (
                 <>
                   <button 
@@ -382,7 +381,6 @@ export default function App() {
                 className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-sm"
               />
             </div>
-            {/* NÚT BẬT TẮT BỘ LỌC CỘT */}
             <button 
               onClick={() => setShowFilters(!showFilters)}
               title="Bật/tắt bộ lọc từng cột"
@@ -417,15 +415,16 @@ export default function App() {
           </div>
         </div>
 
-        {/* BIỂU ĐỒ PIE CHART THỐNG KÊ ĐẠI LÝ */}
         <AgencyPieChart data={filteredData} />
 
         <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50/50">
-                {/* HÀNG TIÊU ĐỀ: CLick để sort */}
-                <tr className="border-b border-gray-100">                  
+                <tr className="border-b border-gray-100">
+                  <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('STT')}>
+                    <div className="flex items-center gap-1">STT <SortIcon columnKey="STT" /></div>
+                  </th>
                   <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('Tên công trình')}>
                     <div className="flex items-center gap-1">Tên Công Trình <SortIcon columnKey="Tên công trình" /></div>
                   </th>
@@ -450,7 +449,6 @@ export default function App() {
                   <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-right min-w-[140px]">Thao Tác</th>
                 </tr>
 
-                {/* HÀNG BỘ LỌC (Chỉ hiện khi bấm nút Filter) */}
                 <AnimatePresence>
                   {showFilters && (
                     <motion.tr 
@@ -458,7 +456,8 @@ export default function App() {
                       animate={{ height: 'auto', opacity: 1 }} 
                       exit={{ height: 0, opacity: 0 }} 
                       className="bg-primary/5 border-b border-gray-100"
-                    >                      
+                    >
+                      <td className="px-2 py-2"><input type="text" placeholder="Lọc..." value={columnFilters['STT'] || ''} onChange={(e) => handleColumnFilterChange('STT', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc Tên/Địa chỉ..." value={columnFilters['Tên công trình'] || ''} onChange={(e) => handleColumnFilterChange('Tên công trình', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc Đại lý..." value={columnFilters['Tên đại lý'] || ''} onChange={(e) => handleColumnFilterChange('Tên đại lý', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc Mã KH..." value={columnFilters['Mã khách hàng'] || ''} onChange={(e) => handleColumnFilterChange('Mã khách hàng', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
@@ -487,7 +486,8 @@ export default function App() {
                       key={project._id || project.STT} 
                       className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
                       title={`Tên công trình: ${project['Tên công trình']}\nRemote Subnet: ${project['Remote subnet'] || 'Chưa có'}`}
-                    >                     
+                    >
+                      <td className="px-4 py-4 text-sm font-mono text-gray-400">{project.STT}</td>
                       <td className="px-4 py-4">
                         <div className="font-semibold text-gray-900 line-clamp-1">{project['Tên công trình']}</div>
                         <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">{project['Địa chỉ']}</div>
@@ -511,17 +511,25 @@ export default function App() {
                         <StatusBadge status={project['Đã nghiệm thu']} />
                       </td>
                       <td className="px-4 py-4 text-right flex justify-end gap-1">
-                        {/* NÚT DOWNLOAD FILE CẤU HÌNH */}
-                        <a 
-                          //href="https://drive.google.com/file/d/1vmGEETpSPDgCDaYS5BoH2HoGATEtJ-R6/view?usp=sharing"
-                          href={project['Link cấu hình']}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Tải file cấu hình"
-                          className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all flex items-center justify-center"
-                        >
-                          <Download size={16} />
-                        </a>
+                        {project['Link cấu hình'] ? (
+                          <a 
+                            href={project['Link cấu hình']}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Tải file cấu hình"
+                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all flex items-center justify-center"
+                          >
+                            <Download size={16} />
+                          </a>
+                        ) : (
+                          <button 
+                            disabled
+                            title="Chưa có link cấu hình"
+                            className="p-2 text-gray-200 cursor-not-allowed flex items-center justify-center"
+                          >
+                            <Download size={16} />
+                          </button>
+                        )}
 
                         <button 
                           onClick={() => {
@@ -583,10 +591,253 @@ export default function App() {
             onClose={() => setIsUserModalOpen(false)}
           />
         )}
+        {isIncidentListOpen && (
+          <IncidentListModal 
+            currentUser={user}
+            projects={data}
+            onClose={() => setIsIncidentListOpen(false)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
 }
+
+// ============================================================================
+// COMPONENT: QUẢN LÝ SỰ CỐ (MỚI)
+// ============================================================================
+function IncidentListModal({ currentUser, projects, onClose }: { currentUser: User; projects: ProjectData[]; onClose: () => void }) {
+  const [incidents, setIncidents] = useState<IncidentData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingIncident, setEditingIncident] = useState<IncidentData | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  useEffect(() => {
+    fetchIncidents();
+  }, []);
+
+  const fetchIncidents = async () => {
+    try {
+      const res = await fetch('/api/incidents', { headers: { 'x-user-role': currentUser.role } });
+      const data = await res.json();
+      // Filter if Agency
+      if (currentUser.role === 'AGENCY') {
+        setIncidents(data.filter((i: IncidentData) => i['Tên đại lý'] === currentUser.agencyName));
+      } else {
+        setIncidents(data);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa sự cố này?")) return;
+    try {
+      await fetch(`/api/incidents/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: currentUser.username, action: 'XÓA SỰ CỐ' })
+      });
+      fetchIncidents();
+    } catch (error) { console.error(error); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+      
+      {!isFormOpen ? (
+        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl flex flex-col">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="bg-orange-500 p-2 rounded-xl text-white"><AlertTriangle size={20} /></div>
+              <div>
+                <h2 className="text-xl font-serif font-bold text-gray-800">Danh Sách Sự Cố</h2>
+                <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Incident Reports</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { setEditingIncident(null); setIsFormOpen(true); }} className="px-4 py-2 bg-orange-600 text-white text-sm font-semibold rounded-xl hover:bg-orange-700 flex items-center gap-2">
+                <Plus size={16} /> Thêm Phản Ánh
+              </button>
+              <button onClick={onClose} className="p-2 hover:bg-white rounded-full text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto p-6">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-50 sticky top-0 shadow-sm">
+                <tr>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Ngày Giờ</th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Công Trình</th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Mô Tả</th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Kết Quả</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-gray-500">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {loading ? <tr><td colSpan={5} className="p-4 text-center text-gray-400">Đang tải...</td></tr> : 
+                 incidents.length === 0 ? <tr><td colSpan={5} className="p-4 text-center text-gray-400">Không có sự cố nào</td></tr> :
+                 incidents.map(inc => (
+                  <tr key={inc._id} className="hover:bg-gray-50/50">
+                    <td className="px-4 py-3 text-xs text-gray-500 font-mono">{new Date(inc['Ngày giờ phản ánh']).toLocaleString('vi-VN')}</td>
+                    <td className="px-4 py-3 font-medium text-sm">{inc['Công trình']}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate">{inc['Mô tả sự cố']}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                        inc['Kết quả xử lý'] === 'Ok' ? 'bg-green-100 text-green-700' :
+                        inc['Kết quả xử lý'] === 'Nok' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                      }`}>{inc['Kết quả xử lý']}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right flex justify-end gap-1">
+                      <button onClick={() => { setEditingIncident(inc); setIsFormOpen(true); }} className="p-1.5 text-gray-400 hover:text-primary bg-gray-50 rounded"><Edit2 size={14}/></button>
+                      {(currentUser.role === 'ADMIN' || currentUser.role === 'OPERATION') && (
+                        <button onClick={() => handleDelete(inc._id!)} className="p-1.5 text-gray-400 hover:text-red-600 bg-gray-50 rounded"><Trash2 size={14}/></button>
+                      )}
+                    </td>
+                  </tr>
+                 ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      ) : (
+        <IncidentForm 
+          currentUser={currentUser}
+          projects={projects}
+          incident={editingIncident}
+          onClose={() => setIsFormOpen(false)}
+          onSave={async (data) => {
+            await fetch('/api/incidents', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data, user: currentUser.username, action: data._id ? 'CẬP NHẬT SỰ CỐ' : 'THÊM SỰ CỐ' })
+            });
+            fetchIncidents();
+            setIsFormOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any) {
+  const isAgency = currentUser.role === 'AGENCY';
+  
+  // Lọc list công trình theo Agency hiện tại (nếu là agency)
+  const agencyProjects = isAgency 
+    ? projects.filter((p: ProjectData) => p['Tên đại lý'] === currentUser.agencyName)
+    : projects;
+
+  const [formData, setFormData] = useState<IncidentData>(incident || {
+    'Tên đại lý': currentUser.agencyName || '',
+    'Công trình': '',
+    'Mô tả sự cố': '',
+    'Ảnh': '',
+    'Ngày giờ phản ánh': '',
+    'Kết quả xử lý': 'Chưa xử lý',
+    'Nguyên nhân và giải pháp': ''
+  });
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, 'Ảnh': reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl flex flex-col">
+      <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+        <h2 className="text-lg font-bold">{incident ? 'Cập Nhật Sự Cố' : 'Thêm Phản Ánh Sự Cố'}</h2>
+        <button onClick={onClose} className="p-2 text-gray-400 hover:bg-white rounded-full"><X size={20}/></button>
+      </div>
+      <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="flex-1 overflow-y-auto p-6 space-y-4">
+        
+        {/* PHẦN DÀNH CHO AGENCY (Admin/Op vẫn xem được) */}
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Công trình *</label>
+          <select 
+            disabled={!isAgency && !!incident} // Admin không nên sửa tên công trình của agency sau khi đã tạo
+            required 
+            value={formData['Công trình']} 
+            onChange={e => setFormData({...formData, 'Công trình': e.target.value})}
+            className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm disabled:opacity-60"
+          >
+            <option value="">Chọn công trình...</option>
+            {agencyProjects.map((p: ProjectData) => <option key={p.STT} value={p['Tên công trình']}>{p['Tên công trình']}</option>)}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Mô tả sự cố *</label>
+          <textarea 
+            required 
+            disabled={!isAgency && !!incident} 
+            rows={3} 
+            value={formData['Mô tả sự cố']} 
+            onChange={e => setFormData({...formData, 'Mô tả sự cố': e.target.value})}
+            className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm disabled:opacity-60"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Ảnh đính kèm</label>
+          {isAgency && (
+            <input type="file" accept="image/*" onChange={handleImageUpload} className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100" />
+          )}
+          {formData['Ảnh'] && (
+            <div className="mt-2 border border-gray-200 rounded-xl overflow-hidden max-w-sm">
+              <img src={formData['Ảnh']} alt="Sự cố" className="w-full h-auto object-contain max-h-48" />
+            </div>
+          )}
+        </div>
+
+        {/* PHẦN DÀNH CHO ADMIN / OPERATION */}
+        <div className="pt-4 border-t border-gray-100 mt-4">
+          <h3 className="text-xs font-bold uppercase text-primary mb-3">Phần Dành Cho Bộ Phận Xử Lý</h3>
+          <div className="space-y-1.5 mb-4">
+            <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Kết quả xử lý</label>
+            <select 
+              disabled={isAgency} 
+              value={formData['Kết quả xử lý']} 
+              onChange={e => setFormData({...formData, 'Kết quả xử lý': e.target.value})}
+              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm disabled:opacity-60"
+            >
+              <option value="Chưa xử lý">Chưa xử lý</option>
+              <option value="Đang xử lý">Đang xử lý</option>
+              <option value="Ok">Ok</option>
+              <option value="Nok">Nok</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Nguyên nhân và giải pháp</label>
+            <textarea 
+              disabled={isAgency} 
+              rows={3} 
+              value={formData['Nguyên nhân và giải pháp']} 
+              onChange={e => setFormData({...formData, 'Nguyên nhân và giải pháp': e.target.value})}
+              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm disabled:opacity-60"
+            />
+          </div>
+        </div>
+
+        <div className="mt-8 flex justify-end gap-3 pt-4">
+          <button type="button" onClick={onClose} className="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold">Hủy</button>
+          <button type="submit" className="px-6 py-2.5 bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-orange-500/20">Lưu Phản Ánh</button>
+        </div>
+      </form>
+    </motion.div>
+  );
+}
+
 
 // ============================================================================
 // COMPONENT BIỂU ĐỒ PIE CHART
@@ -657,7 +908,6 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
   const [usersList, setUsersList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Form State
   const [editingId, setEditingId] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -737,7 +987,6 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
       <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="relative bg-white w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl flex flex-col">
         
-        {/* HEADER MODAL */}
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-purple-500 p-2 rounded-xl">
@@ -753,7 +1002,6 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
           </button>
         </div>
 
-        {/* BODY MODAL */}
         <div className="flex-1 overflow-hidden p-6 flex flex-col gap-6">
           <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4 items-end shrink-0">
             <FormField label="Username" value={username} onChange={setUsername} required />
@@ -830,9 +1078,10 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
     </div>
   );
 }
+
 // ============================================================================
-
-
+// COMPONENT NHẬT KÝ
+// ============================================================================
 function LogModal({ user, onClose }: { user: User; onClose: () => void }) {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -904,19 +1153,20 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function ProjectModal({ user, project, onClose, onSave }: { user: User; project: ProjectData | null; onClose: () => void; onSave: (p: ProjectData) => void }) {
-  const [formData, setFormData] = useState<ProjectData>(project || {
+  const [formData, setFormData] = useState<any>(project || {
     STT: '', 'Công ty điện lực': '', 'Đơn vị điện lực': '', 'Mã TBA': '', 'Mã xuất tuyến': '', 'Tên công trình': '',
     'Mã khách hàng': '', 'Tên đại lý': user.agencyName || '', 'Địa chỉ': '', 'Listening interface': '', 'Preshared key': '',
     'Local ID': '', 'Remote ID': '', 'Local subnet': '', 'Remote subnet': '', Lat: '', Long: '', 'CSTK DC (kWp)': '',
     'CSTK AC (kW)': '', 'Công suất lắp đặt (kW)': '', 'Công suất tối đa (kW)': '', 'Zero export': 'Không', 'SN Nexatus': '', 'SIM IP tĩnh': '','Router IP tĩnh': '',
     'Nhà sản xuất Inverter': '', 'Inverter No. / Inverter Type': '', 'Mã Logger': '', 'Mã công tơ 2 chiều': '',
-    'Đã gửi cấu hình Nexatus': 'Nok', 'Đã upload cấu hình Nexatus': 'Nok', 'Đã tích hợp Nexatus': 'Nok', 'Đã nghiệm thu': 'Nok'
+    'Đã gửi cấu hình Nexatus': 'Nok', 'Đã upload cấu hình Nexatus': 'Nok', 'Đã tích hợp Nexatus': 'Nok', 'Đã nghiệm thu': 'Nok',
+    'Link cấu hình': '' 
   });
 
-  const canEditField = (field: keyof ProjectData) => {
+  const canEditField = (field: keyof ProjectData | 'Link cấu hình') => {
     if (user.role === 'ADMIN') return true;
-    if (user.role === 'OPERATION') return field === 'Đã gửi cấu hình Nexatus' || field === 'Đã tích hợp Nexatus';
-    if (user.role === 'AGENCY') return field !== 'Đã gửi cấu hình Nexatus' && field !== 'Đã tích hợp Nexatus';
+    if (user.role === 'OPERATION') return ['Đã gửi cấu hình Nexatus', 'Đã tích hợp Nexatus', 'Link cấu hình'].includes(field as string);
+    if (user.role === 'AGENCY') return !['Đã gửi cấu hình Nexatus', 'Đã tích hợp Nexatus', 'Link cấu hình'].includes(field as string);
     return false;
   };
 
@@ -940,10 +1190,10 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
         <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="flex-1 overflow-y-auto p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div className="col-span-full mb-2"><h3 className="text-xs font-bold uppercase text-primary border-b border-primary/10 pb-2">Thông Tin Chung</h3></div>
-            <FormField label="Công ty điện lực" required={isRequired('Công ty điện lực')} disabled={!canEditField('Công ty điện lực')} value={formData['Công ty điện lực']} onChange={(v) => setFormData({ ...formData, 'Công ty điện lực': v })} />
-            <FormField label="Đơn vị điện lực" required={isRequired('Đơn vị điện lực')} disabled={!canEditField('Đơn vị điện lực')} value={formData['Đơn vị điện lực']} onChange={(v) => setFormData({ ...formData, 'Đơn vị điện lực': v })} />
-            <FormField label="Tên công trình" required={isRequired('Tên công trình')} disabled={!canEditField('Tên công trình')} value={formData['Tên công trình']} onChange={(v) => setFormData({ ...formData, 'Tên công trình': v })} />
-            <FormField label="Mã khách hàng" required={isRequired('Mã khách hàng')} disabled={!canEditField('Mã khách hàng')} value={formData['Mã khách hàng']} onChange={(v) => setFormData({ ...formData, 'Mã khách hàng': v })} />
+            <FormField label="Công ty điện lực" required={isRequired('Công ty điện lực')} disabled={!canEditField('Công ty điện lực')} value={formData['Công ty điện lực']} onChange={(v: string) => setFormData({ ...formData, 'Công ty điện lực': v })} />
+            <FormField label="Đơn vị điện lực" required={isRequired('Đơn vị điện lực')} disabled={!canEditField('Đơn vị điện lực')} value={formData['Đơn vị điện lực']} onChange={(v: string) => setFormData({ ...formData, 'Đơn vị điện lực': v })} />
+            <FormField label="Tên công trình" required={isRequired('Tên công trình')} disabled={!canEditField('Tên công trình')} value={formData['Tên công trình']} onChange={(v: string) => setFormData({ ...formData, 'Tên công trình': v })} />
+            <FormField label="Mã khách hàng" required={isRequired('Mã khách hàng')} disabled={!canEditField('Mã khách hàng')} value={formData['Mã khách hàng']} onChange={(v: string) => setFormData({ ...formData, 'Mã khách hàng': v })} />
             
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Tên đại lý {isRequired('Tên đại lý') && <span className="text-red-400">*</span>}</label>
@@ -952,7 +1202,7 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
                 {AGENCIES.map(a => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>
-            <FormField label="Địa chỉ" required={isRequired('Địa chỉ')} disabled={!canEditField('Địa chỉ')} value={formData['Địa chỉ']} onChange={(v) => setFormData({ ...formData, 'Địa chỉ': v })} />
+            <FormField label="Địa chỉ" required={isRequired('Địa chỉ')} disabled={!canEditField('Địa chỉ')} value={formData['Địa chỉ']} onChange={(v: string) => setFormData({ ...formData, 'Địa chỉ': v })} />
 
             <div className="col-span-full mt-4 mb-2"><h3 className="text-xs font-bold uppercase text-primary border-b border-primary/10 pb-2">Thông Số Kỹ Thuật (VPN Profile)</h3></div>
             
@@ -963,7 +1213,7 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
                 {Array.from(new Set(LISTENS)).map(item => <option key={item} value={item}>{item}</option>)}
               </select>
             </div>
-            <FormField label="Preshared key" disabled={!canEditField('Preshared key')} value={formData['Preshared key']} onChange={(v) => setFormData({ ...formData, 'Preshared key': v })} />
+            <FormField label="Preshared key" disabled={!canEditField('Preshared key')} value={formData['Preshared key']} onChange={(v: string) => setFormData({ ...formData, 'Preshared key': v })} />
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">Local ID {isRequired('Local ID') && <span className="text-red-400">*</span>}</label>
               <select disabled={!canEditField('Local ID')} value={formData['Local ID']} onChange={(e) => setFormData({ ...formData, 'Local ID': e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm disabled:opacity-60" required={isRequired('Local ID')}>
@@ -971,7 +1221,7 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
                 {Array.from(new Set(LOCALIDS)).map(item => <option key={item} value={item}>{item}</option>)}
               </select>
             </div>
-            <FormField label="Remote ID" disabled={!canEditField('Remote ID')} value={formData['Remote ID']} onChange={(v) => setFormData({ ...formData, 'Remote ID': v })} />
+            <FormField label="Remote ID" disabled={!canEditField('Remote ID')} value={formData['Remote ID']} onChange={(v: string) => setFormData({ ...formData, 'Remote ID': v })} />
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">Local subnet {isRequired('Local subnet') && <span className="text-red-400">*</span>}</label>
               <select disabled={!canEditField('Local subnet')} value={formData['Local subnet']} onChange={(e) => setFormData({ ...formData, 'Local subnet': e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary transition-all text-sm disabled:opacity-60" required={isRequired('Local subnet')}>
@@ -979,15 +1229,15 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
                 {Array.from(new Set(LOCALSUBS)).map(item => <option key={item} value={item}>{item}</option>)}
               </select>
             </div>
-            <FormField label="Remote subnet" disabled={!canEditField('Remote subnet')} value={formData['Remote subnet']} onChange={(v) => setFormData({ ...formData, 'Remote subnet': v })} />
+            <FormField label="Remote subnet" disabled={!canEditField('Remote subnet')} value={formData['Remote subnet']} onChange={(v: string) => setFormData({ ...formData, 'Remote subnet': v })} />
             
             <div className="col-span-full mt-4 mb-2"><h3 className="text-xs font-bold uppercase text-primary border-b border-primary/10 pb-2">Thông Số Vật lý</h3></div>
             <div className="grid grid-cols-2 gap-4">
-              <FormField label="Lat" disabled={!canEditField('Lat')} value={formData.Lat} onChange={(v) => setFormData({ ...formData, Lat: v })} />
-              <FormField label="Long" disabled={!canEditField('Long')} value={formData.Long} onChange={(v) => setFormData({ ...formData, Long: v })} />
+              <FormField label="Lat" disabled={!canEditField('Lat')} value={formData.Lat} onChange={(v: string) => setFormData({ ...formData, Lat: v })} />
+              <FormField label="Long" disabled={!canEditField('Long')} value={formData.Long} onChange={(v: string) => setFormData({ ...formData, Long: v })} />
             </div>
-            <FormField label="CSTK DC (kWp)" disabled={!canEditField('CSTK DC (kWp)')} value={formData['CSTK DC (kWp)']} onChange={(v) => setFormData({ ...formData, 'CSTK DC (kWp)': v })} />
-            <FormField label="CSTK AC (kW)" disabled={!canEditField('CSTK AC (kW)')} value={formData['CSTK AC (kW)']} onChange={(v) => setFormData({ ...formData, 'CSTK AC (kW)': v })} />
+            <FormField label="CSTK DC (kWp)" disabled={!canEditField('CSTK DC (kWp)')} value={formData['CSTK DC (kWp)']} onChange={(v: string) => setFormData({ ...formData, 'CSTK DC (kWp)': v })} />
+            <FormField label="CSTK AC (kW)" disabled={!canEditField('CSTK AC (kW)')} value={formData['CSTK AC (kW)']} onChange={(v: string) => setFormData({ ...formData, 'CSTK AC (kW)': v })} />
             
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Zero export</label>
@@ -997,9 +1247,9 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
               </select>
             </div>
             
-            <FormField label="SN Nexatus" disabled={!canEditField('SN Nexatus')} value={formData['SN Nexatus']} onChange={(v) => setFormData({ ...formData, 'SN Nexatus': v })} />
-            <FormField label="SIM IP tĩnh" disabled={!canEditField('SIM IP tĩnh')} value={formData['SIM IP tĩnh']} onChange={(v) => setFormData({ ...formData, 'SIM IP tĩnh': v })} />
-            <FormField label="Router IP tĩnh" disabled={!canEditField('Router IP tĩnh')} value={formData['Router IP tĩnh']} onChange={(v) => setFormData({ ...formData, 'Router IP tĩnh': v })} />
+            <FormField label="SN Nexatus" disabled={!canEditField('SN Nexatus')} value={formData['SN Nexatus']} onChange={(v: string) => setFormData({ ...formData, 'SN Nexatus': v })} />
+            <FormField label="SIM IP tĩnh" disabled={!canEditField('SIM IP tĩnh')} value={formData['SIM IP tĩnh']} onChange={(v: string) => setFormData({ ...formData, 'SIM IP tĩnh': v })} />
+            <FormField label="Router IP tĩnh" disabled={!canEditField('Router IP tĩnh')} value={formData['Router IP tĩnh']} onChange={(v: string) => setFormData({ ...formData, 'Router IP tĩnh': v })} />
             
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">Nhà sản xuất Inverter {isRequired('Nhà sản xuất Inverter') && <span className="text-red-400">*</span>}</label>
@@ -1023,7 +1273,17 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
               </select>
             </div>
 
-            <div className="col-span-full mt-4 mb-2"><h3 className="text-xs font-bold uppercase text-primary border-b border-primary/10 pb-2">Trạng Thái Vận Hành</h3></div>
+            <div className="col-span-full mt-4 mb-2"><h3 className="text-xs font-bold uppercase text-primary border-b border-primary/10 pb-2">Trạng Thái Vận Hành & Tệp Tin</h3></div>
+            
+            <div className="col-span-full mb-2">
+              <FormField 
+                label="Link File Cấu Hình (Google Drive, Dropbox...)" 
+                disabled={!canEditField('Link cấu hình')} 
+                value={formData['Link cấu hình']} 
+                onChange={(v: string) => setFormData({ ...formData, 'Link cấu hình': v })} 
+              />
+            </div>
+
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Đã gửi cấu hình Nexatus</label>
               <select disabled={!canEditField('Đã gửi cấu hình Nexatus')} value={formData['Đã gửi cấu hình Nexatus']} onChange={(e) => setFormData({ ...formData, 'Đã gửi cấu hình Nexatus': e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary text-sm disabled:opacity-60">
