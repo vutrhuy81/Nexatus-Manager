@@ -36,7 +36,6 @@ export default function App() {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
   
-  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false); 
@@ -419,7 +418,7 @@ export default function App() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50/50">
-                <tr className="border-b border-gray-100">
+                <tr className="border-b border-gray-100">                  
                   <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('STT')}>
                     <div className="flex items-center gap-1">STT <SortIcon columnKey="STT" /></div>
                   </th>
@@ -454,7 +453,7 @@ export default function App() {
                       animate={{ height: 'auto', opacity: 1 }} 
                       exit={{ height: 0, opacity: 0 }} 
                       className="bg-primary/5 border-b border-gray-100"
-                    >
+                    >                      
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc..." value={columnFilters['STT'] || ''} onChange={(e) => handleColumnFilterChange('STT', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc Tên/Địa chỉ..." value={columnFilters['Tên công trình'] || ''} onChange={(e) => handleColumnFilterChange('Tên công trình', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc Đại lý..." value={columnFilters['Tên đại lý'] || ''} onChange={(e) => handleColumnFilterChange('Tên đại lý', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
@@ -484,8 +483,8 @@ export default function App() {
                       key={project._id || project.STT} 
                       className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
                       title={`Tên công trình: ${project['Tên công trình']}\nRemote Subnet: ${project['Remote subnet'] || 'Chưa có'}`}
-                    >
-                      <td className="px-4 py-4 text-sm font-mono text-gray-400">{project.STT}</td>
+                    >     
+                      <td className="px-4 py-4 text-sm font-mono text-gray-400">{project.STT}</td>                
                       <td className="px-4 py-4">
                         <div className="font-semibold text-gray-900 line-clamp-1">{project['Tên công trình']}</div>
                         <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">{project['Địa chỉ']}</div>
@@ -602,7 +601,7 @@ export default function App() {
 }
 
 // ============================================================================
-// COMPONENT: QUẢN LÝ SỰ CỐ (TICKETING) - HỖ TRỢ UPLOAD NHIỀU ẢNH
+// COMPONENT: QUẢN LÝ SỰ CỐ (TICKETING) - ĐÃ CẬP NHẬT LOG DETAILS
 // ============================================================================
 function IncidentListModal({ currentUser, projects, onClose }: { currentUser: User; projects: ProjectData[]; onClose: () => void }) {
   const [incidents, setIncidents] = useState<IncidentData[]>([]);
@@ -631,12 +630,18 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
   };
 
   const handleDelete = async (id: string) => {
+    const incToDelete = incidents.find(i => i._id === id);
     if (!window.confirm("Bạn có chắc chắn muốn xóa sự cố này?")) return;
     try {
       await fetch(`/api/incidents/${id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: currentUser.username, action: 'XÓA SỰ CỐ' })
+        body: JSON.stringify({ 
+          user: currentUser.username, 
+          action: 'XÓA SỰ CỐ',
+          // TRUYỀN DETAILS ĐỂ GHI LOG
+          details: incToDelete ? `Xóa sự cố công trình: ${incToDelete['Công trình']}` : 'Xóa sự cố'
+        })
       });
       fetchIncidents();
     } catch (error) { console.error(error); }
@@ -707,10 +712,21 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
           incident={editingIncident}
           onClose={() => setIsFormOpen(false)}
           onSave={async (data: IncidentData) => {
+            const isUpdate = !!data._id;
+            const actionName = isUpdate ? 'CẬP NHẬT SỰ CỐ' : 'THÊM SỰ CỐ';
+            
+            // TRUYỀN DETAILS ĐỂ GHI LOG VỚI ĐẦY ĐỦ TÊN CÔNG TRÌNH
+            const detailsText = `${isUpdate ? 'Cập nhật' : 'Thêm'} sự cố công trình: ${data['Công trình']}`;
+
             await fetch('/api/incidents', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ data, user: currentUser.username, action: data._id ? 'CẬP NHẬT SỰ CỐ' : 'THÊM SỰ CỐ' })
+              body: JSON.stringify({ 
+                data, 
+                user: currentUser.username, 
+                action: actionName,
+                details: detailsText
+              })
             });
             fetchIncidents();
             setIsFormOpen(false);
@@ -728,7 +744,6 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
     ? projects.filter((p: ProjectData) => p['Tên đại lý'] === currentUser.agencyName)
     : projects;
 
-  // Đảm bảo khởi tạo dưới dạng mảng (Array) để tương thích backward với db cũ
   const initialImages = Array.isArray(incident?.['Ảnh']) ? incident?.['Ảnh'] : (incident?.['Ảnh'] ? [incident?.['Ảnh']] : []);
   const initialResultImages = Array.isArray(incident?.['Ảnh kết quả']) ? incident?.['Ảnh kết quả'] : (incident?.['Ảnh kết quả'] ? [incident?.['Ảnh kết quả']] : []);
 
@@ -747,7 +762,6 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
     'Nguyên nhân và giải pháp': ''
   });
 
-  // Hàm upload nhiều ảnh
   const handleMultipleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'Ảnh' | 'Ảnh kết quả') => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -768,7 +782,6 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
     }));
   };
 
-  // Hàm xóa ảnh khỏi danh sách
   const removeImage = (index: number, field: 'Ảnh' | 'Ảnh kết quả') => {
     setFormData((prev: any) => {
       const newArray = [...(prev[field] || [])];
@@ -785,7 +798,6 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
       </div>
       <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="flex-1 overflow-y-auto p-6 space-y-4">
         
-        {/* PHẦN DÀNH CHO AGENCY VÀ KHAI BÁO */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Công trình *</label>
           <select 
@@ -812,7 +824,6 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
           />
         </div>
 
-        {/* UPLOAD NHIỀU ẢNH (DÀNH CHO ĐẠI LÝ) */}
         <div className="space-y-1.5">
           <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Ảnh đính kèm từ Đại lý</label>
           {isAgency && (
@@ -844,7 +855,6 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
           )}
         </div>
 
-        {/* PHẦN DÀNH CHO ADMIN / OPERATION CẬP NHẬT KẾT QUẢ */}
         <div className="pt-4 border-t border-gray-100 mt-4">
           <h3 className="text-xs font-bold uppercase text-primary mb-3">Phần Dành Cho Bộ Phận Xử Lý</h3>
           <div className="space-y-1.5 mb-4">
@@ -873,7 +883,6 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
             />
           </div>
 
-          {/* UPLOAD NHIỀU ẢNH KẾT QUẢ (DÀNH CHO ADMIN/OP) */}
           <div className="space-y-1.5">
             <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Ảnh kết quả xử lý (Admin / Operation)</label>
             {!isAgency && (
