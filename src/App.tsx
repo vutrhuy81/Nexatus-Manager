@@ -22,7 +22,7 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUpDown,
-  AlertTriangle // Icon cho Sự cố
+  AlertTriangle 
 } from 'lucide-react';
 import { User, ProjectData, IncidentData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS } from './types';
 
@@ -319,7 +319,6 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* NÚT SỰ CỐ */}
               <button 
                 onClick={() => setIsIncidentListOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-100 hover:bg-orange-100 transition-all text-sm font-semibold"
@@ -510,7 +509,6 @@ export default function App() {
                         <StatusBadge status={project['Đã nghiệm thu']} />
                       </td>
                       <td className="px-4 py-4 text-right flex justify-end gap-1">
-                        
                         {project['Link cấu hình'] ? (
                           <a 
                             href={project['Link cấu hình']}
@@ -604,7 +602,7 @@ export default function App() {
 }
 
 // ============================================================================
-// COMPONENT: QUẢN LÝ SỰ CỐ (TICKETING)
+// COMPONENT: QUẢN LÝ SỰ CỐ (TICKETING) - HỖ TRỢ UPLOAD NHIỀU ẢNH
 // ============================================================================
 function IncidentListModal({ currentUser, projects, onClose }: { currentUser: User; projects: ProjectData[]; onClose: () => void }) {
   const [incidents, setIncidents] = useState<IncidentData[]>([]);
@@ -620,7 +618,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     try {
       const res = await fetch('/api/incidents', { headers: { 'x-user-role': currentUser.role } });
       const data = await res.json();
-      // Nếu là Agency thì chỉ thấy sự cố của đại lý mình
       if (currentUser.role === 'AGENCY') {
         setIncidents(data.filter((i: IncidentData) => i['Tên đại lý'] === currentUser.agencyName));
       } else {
@@ -668,7 +665,7 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
           </div>
           <div className="flex-1 overflow-auto p-6">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50 sticky top-0 shadow-sm">
+              <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
                 <tr>
                   <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Ngày Giờ</th>
                   <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Công Trình</th>
@@ -727,30 +724,57 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
 function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any) {
   const isAgency = currentUser.role === 'AGENCY';
   
-  // Lọc list công trình theo Agency hiện tại
   const agencyProjects = isAgency 
     ? projects.filter((p: ProjectData) => p['Tên đại lý'] === currentUser.agencyName)
     : projects;
 
-  const [formData, setFormData] = useState<IncidentData>(incident || {
+  // Đảm bảo khởi tạo dưới dạng mảng (Array) để tương thích backward với db cũ
+  const initialImages = Array.isArray(incident?.['Ảnh']) ? incident?.['Ảnh'] : (incident?.['Ảnh'] ? [incident?.['Ảnh']] : []);
+  const initialResultImages = Array.isArray(incident?.['Ảnh kết quả']) ? incident?.['Ảnh kết quả'] : (incident?.['Ảnh kết quả'] ? [incident?.['Ảnh kết quả']] : []);
+
+  const [formData, setFormData] = useState<any>(incident ? {
+    ...incident,
+    'Ảnh': initialImages,
+    'Ảnh kết quả': initialResultImages
+  } : {
     'Tên đại lý': currentUser.agencyName || '',
     'Công trình': '',
     'Mô tả sự cố': '',
-    'Ảnh': '',
+    'Ảnh': [],
+    'Ảnh kết quả': [],
     'Ngày giờ phản ánh': '',
     'Kết quả xử lý': 'Chưa xử lý',
     'Nguyên nhân và giải pháp': ''
   });
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, 'Ảnh': reader.result as string });
-      };
-      reader.readAsDataURL(file);
-    }
+  // Hàm upload nhiều ảnh
+  const handleMultipleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'Ảnh' | 'Ảnh kết quả') => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const base64Promises = files.map(file => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    const base64Images = await Promise.all(base64Promises);
+    
+    setFormData((prev: any) => ({
+      ...prev,
+      [field]: [...(prev[field] || []), ...base64Images]
+    }));
+  };
+
+  // Hàm xóa ảnh khỏi danh sách
+  const removeImage = (index: number, field: 'Ảnh' | 'Ảnh kết quả') => {
+    setFormData((prev: any) => {
+      const newArray = [...(prev[field] || [])];
+      newArray.splice(index, 1);
+      return { ...prev, [field]: newArray };
+    });
   };
 
   return (
@@ -788,14 +812,34 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
           />
         </div>
 
+        {/* UPLOAD NHIỀU ẢNH (DÀNH CHO ĐẠI LÝ) */}
         <div className="space-y-1.5">
-          <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Ảnh đính kèm</label>
+          <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Ảnh đính kèm từ Đại lý</label>
           {isAgency && (
-            <input type="file" accept="image/*" onChange={handleImageUpload} className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100" />
+            <input 
+              type="file" 
+              multiple 
+              accept="image/*" 
+              onChange={(e) => handleMultipleImageUpload(e, 'Ảnh')} 
+              className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100" 
+            />
           )}
-          {formData['Ảnh'] && (
-            <div className="mt-2 border border-gray-200 rounded-xl overflow-hidden max-w-sm">
-              <img src={formData['Ảnh']} alt="Sự cố" className="w-full h-auto object-contain max-h-48" />
+          {formData['Ảnh'] && formData['Ảnh'].length > 0 && (
+            <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {formData['Ảnh'].map((imgStr: string, idx: number) => (
+                <div key={idx} className="relative border border-gray-200 rounded-xl overflow-hidden aspect-square group">
+                  <img src={imgStr} alt="Sự cố" className="w-full h-full object-cover" />
+                  {isAgency && (
+                    <button 
+                      type="button" 
+                      onClick={() => removeImage(idx, 'Ảnh')} 
+                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -817,7 +861,8 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
               <option value="Nok">Nok</option>
             </select>
           </div>
-          <div className="space-y-1.5">
+          
+          <div className="space-y-1.5 mb-4">
             <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Nguyên nhân và giải pháp</label>
             <textarea 
               disabled={isAgency} 
@@ -826,6 +871,38 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
               onChange={e => setFormData({...formData, 'Nguyên nhân và giải pháp': e.target.value})}
               className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm disabled:opacity-60"
             />
+          </div>
+
+          {/* UPLOAD NHIỀU ẢNH KẾT QUẢ (DÀNH CHO ADMIN/OP) */}
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Ảnh kết quả xử lý (Admin / Operation)</label>
+            {!isAgency && (
+              <input 
+                type="file" 
+                multiple 
+                accept="image/*" 
+                onChange={(e) => handleMultipleImageUpload(e, 'Ảnh kết quả')} 
+                className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+              />
+            )}
+            {formData['Ảnh kết quả'] && formData['Ảnh kết quả'].length > 0 && (
+              <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {formData['Ảnh kết quả'].map((imgStr: string, idx: number) => (
+                  <div key={idx} className="relative border border-gray-200 rounded-xl overflow-hidden aspect-square group">
+                    <img src={imgStr} alt="Kết quả" className="w-full h-full object-cover" />
+                    {!isAgency && (
+                      <button 
+                        type="button" 
+                        onClick={() => removeImage(idx, 'Ảnh kết quả')} 
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
