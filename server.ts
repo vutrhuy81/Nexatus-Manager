@@ -6,11 +6,23 @@ import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import nodemailer from "nodemailer"; // BỔ SUNG THƯ VIỆN GỬI MAIL
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// ==========================================
+// CẤU HÌNH GỬI EMAIL (NODEMAILER)
+// ==========================================
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER, // VD: địa chỉ email gửi đi (gmail của bạn)
+    pass: process.env.EMAIL_PASS  // Mật khẩu ứng dụng (App Password) của Gmail
+  }
+});
 
 // ==========================================
 // 1. KẾT NỐI MONGODB & ĐỊNH NGHĨA SCHEMA
@@ -43,18 +55,18 @@ const Dataset = mongoose.model("Dataset", dataSchema);
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  email: { type: String }, // Bổ sung để lưu email user
   role: { type: String, required: true },
   agencyName: { type: String }
 }, { versionKey: false });
 const UserDB = mongoose.model("User", userSchema);
 
-// SCHEMA SỰ CỐ ĐÃ CẬP NHẬT MẢNG ẢNH
 const incidentSchema = new mongoose.Schema({
   'Tên đại lý': String,
   'Công trình': String,
   'Mô tả sự cố': String,
-  'Ảnh': [String],            // Mảng các chuỗi Base64 của Đại lý
-  'Ảnh kết quả': [String],    // Mảng các chuỗi Base64 của Admin/Op
+  'Ảnh': [String],
+  'Ảnh kết quả': [String],
   'Ngày giờ phản ánh': String,
   'Kết quả xử lý': { type: String, default: "Chưa xử lý" },
   'Nguyên nhân và giải pháp': String
@@ -65,7 +77,7 @@ async function seedAdminUser() {
   try {
     const adminCount = await UserDB.countDocuments({ role: 'ADMIN' });
     if (adminCount === 0) {
-      await UserDB.create({ username: 'Admin', password: '123456', role: 'ADMIN' });
+      await UserDB.create({ username: 'Admin', password: '123456', role: 'ADMIN', email: 'vutrhuy81@gmail.com' });
       console.log("⭐ Đã tạo tài khoản mặc định: User: Admin | Pass: 123456");
     }
   } catch (error) {
@@ -73,10 +85,67 @@ async function seedAdminUser() {
   }
 }
 
+// HÀM GỬI EMAIL THÔNG BÁO LOG
+async function sendLogEmail(user: string, action: string, details: string, timestamp: string) {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log("⚠️ Bỏ qua gửi email: Chưa cấu hình EMAIL_USER và EMAIL_PASS trong biến môi trường.");
+    return;
+  }
+
+  try {
+    // 1. Lấy danh sách email của tất cả Admin & Operation từ Database
+    const adminOpUsers = await UserDB.find({ role: { $in: ['ADMIN', 'OPERATION'] } }, 'email').lean();
+    const dbEmails = adminOpUsers.map(u => u.email).filter(e => e && e.trim() !== '');
+
+    // 2. Gộp với danh sách email mặc định (tránh trùng lặp)
+    const defaultEmails = ['vutrhuy81@gmail.com', 'eduon.ltd@gmail.com'];
+    const targetEmails = Array.from(new Set([...dbEmails, ...defaultEmails]));
+
+    if (targetEmails.length === 0) return;
+
+    // 3. Khung giao diện HTML cho Email
+    const mailOptions = {
+      from: `"Hệ thống Nexatus Ops" <${process.env.EMAIL_USER}>`,
+      to: targetEmails.join(', '),
+      subject: `[Thông báo Hệ thống] ${action}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-w: 600px; border: 1px solid #e5e7eb; border-radius: 12px;">
+          <h2 style="color: #4f46e5; margin-top: 0; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">Nhật Ký Hoạt Động Mới</h2>
+          <p>Hệ thống vừa ghi nhận một thay đổi dữ liệu từ tài khoản: <strong>${user}</strong>.</p>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+            <tr>
+              <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: bold; width: 120px; background-color: #f9fafb;">Thời gian</td>
+              <td style="padding: 12px; border: 1px solid #e5e7eb;">${new Date(timestamp).toLocaleString('vi-VN')}</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: bold; background-color: #f9fafb;">Hành động</td>
+              <td style="padding: 12px; border: 1px solid #e5e7eb;"><span style="background-color: #dbeafe; color: #1d4ed8; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px;">${action}</span></td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: bold; background-color: #f9fafb;">Chi tiết</td>
+              <td style="padding: 12px; border: 1px solid #e5e7eb; line-height: 1.5;">${details}</td>
+            </tr>
+          </table>
+          <p style="margin-top: 30px; font-size: 12px; color: #6b7280; text-align: center;">
+            Đây là email thông báo tự động từ hệ thống Nexatus Manager.<br>Vui lòng không trả lời email này.
+          </p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("✉️ Đã gửi email thông báo thành công!");
+  } catch (error) {
+    console.error("❌ Lỗi khi gửi email:", error);
+  }
+}
+
 async function writeLog(user: string, action: string, details: string) {
   const timestamp = new Date().toISOString();
   try {
     await Log.create({ timestamp, user, action, details });
+    // Gọi hàm gửi email nhưng KHÔNG await để không làm chậm trải nghiệm của người dùng trên web
+    sendLogEmail(user, action, details, timestamp);
   } catch (error) {
     console.error("Lỗi khi ghi log vào MongoDB:", error);
   }
@@ -90,8 +159,6 @@ async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
 
   app.use(cors());
-  
-  // TĂNG GIỚI HẠN LÊN 50MB VÌ CÓ NHIỀU ẢNH
   app.use(express.json({ limit: '50mb' })); 
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
