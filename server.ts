@@ -44,16 +44,17 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, required: true },
-  agencyName: { type: String } 
+  agencyName: { type: String }
 }, { versionKey: false });
 const UserDB = mongoose.model("User", userSchema);
 
-// THÊM MỚI: SCHEMA PHẢN ÁNH SỰ CỐ
+// SCHEMA SỰ CỐ ĐÃ CẬP NHẬT MẢNG ẢNH
 const incidentSchema = new mongoose.Schema({
   'Tên đại lý': String,
   'Công trình': String,
   'Mô tả sự cố': String,
-  'Ảnh': String,
+  'Ảnh': [String],            // Mảng các chuỗi Base64 của Đại lý
+  'Ảnh kết quả': [String],    // Mảng các chuỗi Base64 của Admin/Op
   'Ngày giờ phản ánh': String,
   'Kết quả xử lý': { type: String, default: "Chưa xử lý" },
   'Nguyên nhân và giải pháp': String
@@ -90,19 +91,16 @@ async function startServer() {
 
   app.use(cors());
   
-  // Tăng giới hạn payload lên 10MB để hỗ trợ tải ảnh Base64
-  app.use(express.json({ limit: '10mb' })); 
-  app.use(express.urlencoded({ limit: '10mb', extended: true }));
+  // TĂNG GIỚI HẠN LÊN 50MB VÌ CÓ NHIỀU ẢNH
+  app.use(express.json({ limit: '50mb' })); 
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   app.post("/api/login", async (req, res) => {
     try {
       const { username, password } = req.body;
       const user = await UserDB.findOne({ username, password }).lean();
-      if (user) {
-        res.json({ success: true, user });
-      } else {
-        res.status(401).json({ success: false, message: "Sai tên đăng nhập hoặc mật khẩu" });
-      }
+      if (user) res.json({ success: true, user });
+      else res.status(401).json({ success: false, message: "Sai tên đăng nhập hoặc mật khẩu" });
     } catch (error) {
       res.status(500).json({ success: false, message: "Lỗi máy chủ" });
     }
@@ -113,9 +111,7 @@ async function startServer() {
     try {
       const users = await UserDB.find({}).lean();
       res.json(users);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch users" });
-    }
+    } catch (error) { res.status(500).json({ error: "Failed to fetch users" }); }
   });
 
   app.post("/api/users", async (req, res) => {
@@ -132,9 +128,7 @@ async function startServer() {
         savedUser = await UserDB.create(userData);
       }
       res.json({ message: "Lưu user thành công", user: savedUser });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to save user" });
-    }
+    } catch (error) { res.status(500).json({ error: "Failed to save user" }); }
   });
 
   app.delete("/api/users/:id", async (req, res) => {
@@ -142,12 +136,10 @@ async function startServer() {
     try {
       await UserDB.findByIdAndDelete(req.params.id);
       res.json({ message: "Xóa user thành công" });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete user" });
-    }
+    } catch (error) { res.status(500).json({ error: "Failed to delete user" }); }
   });
 
-  // --- API SỰ CỐ (INCIDENTS) ---
+  // --- API SỰ CỐ ---
   app.get("/api/incidents", async (req, res) => {
     try {
       const records = await Incident.find({}).lean();
@@ -165,7 +157,6 @@ async function startServer() {
         const { _id, ...updateFields } = recordData;
         savedRecord = await Incident.findByIdAndUpdate(_id, updateFields, { new: true });
       } else {
-        // Tự động tạo ngày giờ lúc server nhận request
         recordData['Ngày giờ phản ánh'] = new Date().toISOString(); 
         savedRecord = await Incident.create(recordData);
       }
@@ -188,12 +179,11 @@ async function startServer() {
     }
   });
 
-  // --- API THỐNG KÊ (ĐÃ FIX LỖI TS1117) ---
+  // --- API DATA ---
   app.get("/api/stats/agencies", async (req, res) => {
     try {
       const stats = await Dataset.aggregate([
         { $group: { _id: "$Tên đại lý", count: { $sum: 1 } } },
-        // Sử dụng $nin (Not In) thay vì 2 lần $ne
         { $match: { _id: { $nin: [null, ""] } } }, 
         { $sort: { count: -1 } }
       ]);
@@ -208,9 +198,7 @@ async function startServer() {
     try {
       const records = await Dataset.find({}).lean();
       res.json(records);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to read data" });
-    }
+    } catch (error) { res.status(500).json({ error: "Failed to read data" }); }
   });
 
   app.post("/api/data", async (req, res) => {
@@ -225,12 +213,9 @@ async function startServer() {
       } else {
         savedRecord = await Dataset.create(recordData);
       }
-      
       if (user && action) await writeLog(user, action, details || "");
       res.json({ message: "Lưu dữ liệu thành công", data: savedRecord });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to save data" });
-    }
+    } catch (error) { res.status(500).json({ error: "Failed to save data" }); }
   });
 
   app.delete("/api/data/:id", async (req, res) => {
@@ -240,9 +225,7 @@ async function startServer() {
       await Dataset.findByIdAndDelete(id);
       if (user && action) await writeLog(user, action, details || `Đã xóa bản ghi ID: ${id}`);
       res.json({ message: "Xóa dữ liệu thành công" });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete data" });
-    }
+    } catch (error) { res.status(500).json({ error: "Failed to delete data" }); }
   });
 
   app.get("/api/logs", async (req, res) => {
@@ -250,9 +233,7 @@ async function startServer() {
     try {
       const logs = await Log.find({}, { _id: 0, __v: 0 }).sort({ timestamp: -1 }).lean();
       res.json(logs);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to read logs" });
-    }
+    } catch (error) { res.status(500).json({ error: "Failed to read logs" }); }
   });
 
   app.get("/api/export/data", async (req, res) => {
@@ -264,9 +245,7 @@ async function startServer() {
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", "attachment; filename=dataset.csv");
       res.send(bom + content);
-    } catch (error) {
-      res.status(500).send("Export failed");
-    }
+    } catch (error) { res.status(500).send("Export failed"); }
   });
 
   app.get("/api/export/logs", async (req, res) => {
@@ -279,9 +258,7 @@ async function startServer() {
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader("Content-Disposition", "attachment; filename=activity_log.csv");
       res.send(bom + content);
-    } catch (error) {
-      res.status(500).send("Export failed");
-    }
+    } catch (error) { res.status(500).send("Export failed"); }
   });
 
   if (process.env.NODE_ENV !== "production") {
