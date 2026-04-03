@@ -4,6 +4,7 @@ export interface User {
   username: string;
   role: UserRole;
   agencyName?: string;
+  email?: string; // BỔ SUNG TRƯỜNG EMAIL
 }
 
 export interface ProjectData {
@@ -43,14 +44,13 @@ export interface ProjectData {
   'Link cấu hình'?: string;
 }
 
-// INTERFACE CHO PHẢN ÁNH SỰ CỐ
 export interface IncidentData {
   _id?: string;
   'Tên đại lý': string;
   'Công trình': string;
   'Mô tả sự cố': string;
-  'Ảnh'?: string[];           // Đã sửa thành mảng để lưu nhiều ảnh đại lý
-  'Ảnh kết quả'?: string[];   // Thêm mảng lưu nhiều ảnh kết quả của Admin/Op
+  'Ảnh'?: string[];           
+  'Ảnh kết quả'?: string[];   
   'Ngày giờ phản ánh': string;
   'Kết quả xử lý': string;
   'Nguyên nhân và giải pháp': string;
