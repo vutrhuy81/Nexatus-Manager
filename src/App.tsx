@@ -36,6 +36,7 @@ export default function App() {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
   
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false); 
@@ -418,7 +419,7 @@ export default function App() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50/50">
-                <tr className="border-b border-gray-100">                  
+                <tr className="border-b border-gray-100">
                   <th className="px-4 py-4 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-primary transition-colors" onClick={() => handleSort('STT')}>
                     <div className="flex items-center gap-1">STT <SortIcon columnKey="STT" /></div>
                   </th>
@@ -453,7 +454,7 @@ export default function App() {
                       animate={{ height: 'auto', opacity: 1 }} 
                       exit={{ height: 0, opacity: 0 }} 
                       className="bg-primary/5 border-b border-gray-100"
-                    >                      
+                    >
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc..." value={columnFilters['STT'] || ''} onChange={(e) => handleColumnFilterChange('STT', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc Tên/Địa chỉ..." value={columnFilters['Tên công trình'] || ''} onChange={(e) => handleColumnFilterChange('Tên công trình', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
                       <td className="px-2 py-2"><input type="text" placeholder="Lọc Đại lý..." value={columnFilters['Tên đại lý'] || ''} onChange={(e) => handleColumnFilterChange('Tên đại lý', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-primary" /></td>
@@ -483,8 +484,8 @@ export default function App() {
                       key={project._id || project.STT} 
                       className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
                       title={`Tên công trình: ${project['Tên công trình']}\nRemote Subnet: ${project['Remote subnet'] || 'Chưa có'}`}
-                    >     
-                      <td className="px-4 py-4 text-sm font-mono text-gray-400">{project.STT}</td>                
+                    >
+                      <td className="px-4 py-4 text-sm font-mono text-gray-400">{project.STT}</td>
                       <td className="px-4 py-4">
                         <div className="font-semibold text-gray-900 line-clamp-1">{project['Tên công trình']}</div>
                         <div className="text-xs text-gray-400 mt-0.5 line-clamp-1">{project['Địa chỉ']}</div>
@@ -601,7 +602,7 @@ export default function App() {
 }
 
 // ============================================================================
-// COMPONENT: QUẢN LÝ SỰ CỐ (TICKETING) - ĐÃ CẬP NHẬT LOG DETAILS
+// COMPONENT: QUẢN LÝ SỰ CỐ
 // ============================================================================
 function IncidentListModal({ currentUser, projects, onClose }: { currentUser: User; projects: ProjectData[]; onClose: () => void }) {
   const [incidents, setIncidents] = useState<IncidentData[]>([]);
@@ -639,7 +640,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
         body: JSON.stringify({ 
           user: currentUser.username, 
           action: 'XÓA SỰ CỐ',
-          // TRUYỀN DETAILS ĐỂ GHI LOG
           details: incToDelete ? `Xóa sự cố công trình: ${incToDelete['Công trình']}` : 'Xóa sự cố'
         })
       });
@@ -714,8 +714,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
           onSave={async (data: IncidentData) => {
             const isUpdate = !!data._id;
             const actionName = isUpdate ? 'CẬP NHẬT SỰ CỐ' : 'THÊM SỰ CỐ';
-            
-            // TRUYỀN DETAILS ĐỂ GHI LOG VỚI ĐẦY ĐỦ TÊN CÔNG TRÌNH
             const detailsText = `${isUpdate ? 'Cập nhật' : 'Thêm'} sự cố công trình: ${data['Công trình']}`;
 
             await fetch('/api/incidents', {
@@ -996,6 +994,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
   const [editingId, setEditingId] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(''); // BỔ SUNG KHAI BÁO EMAIL CHO USER
   const [role, setRole] = useState('OPERATION');
   const [agencyName, setAgencyName] = useState('');
 
@@ -1028,6 +1027,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
           _id: editingId || undefined,
           username,
           password,
+          email, // TRUYỀN EMAIL XUỐNG DB
           role,
           agencyName: role === 'AGENCY' ? agencyName : ''
         })
@@ -1035,7 +1035,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
       const data = await res.json();
       if (res.ok) {
         alert(data.message);
-        setEditingId(''); setUsername(''); setPassword(''); setRole('OPERATION'); setAgencyName('');
+        setEditingId(''); setUsername(''); setPassword(''); setEmail(''); setRole('OPERATION'); setAgencyName('');
         fetchUsers();
       } else {
         alert(data.error);
@@ -1049,6 +1049,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
     setEditingId(u._id);
     setUsername(u.username);
     setPassword(u.password);
+    setEmail(u.email || ''); // FILL EMAIL NẾU CÓ
     setRole(u.role);
     setAgencyName(u.agencyName || '');
   };
@@ -1088,9 +1089,10 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
         </div>
 
         <div className="flex-1 overflow-hidden p-6 flex flex-col gap-6">
-          <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4 items-end shrink-0">
+          <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl border border-gray-100 grid grid-cols-1 md:grid-cols-5 gap-4 items-end shrink-0">
             <FormField label="Username" value={username} onChange={setUsername} required />
             <FormField label="Password" value={password} onChange={setPassword} required />
+            <FormField label="Email (Nhận Cảnh Báo)" value={email} onChange={setEmail} type="email" />
             
             <div className="space-y-1.5">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 ml-1">Vai Trò (Role) *</label>
@@ -1113,7 +1115,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
 
             <div className="md:col-span-full flex justify-end gap-2 mt-2">
               {editingId && (
-                <button type="button" onClick={() => {setEditingId(''); setUsername(''); setPassword('');}} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-200 rounded-lg">
+                <button type="button" onClick={() => {setEditingId(''); setUsername(''); setPassword(''); setEmail('');}} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-200 rounded-lg">
                   Hủy sửa
                 </button>
               )}
@@ -1128,7 +1130,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
               <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500">Username</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-500">Password</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-500">Email</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500">Role</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-500">Đại lý</th>
                   <th className="px-4 py-3 text-right text-xs font-bold text-gray-500">Thao tác</th>
@@ -1141,7 +1143,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
                   usersList.map((u) => (
                     <tr key={u._id} className="hover:bg-gray-50/50">
                       <td className="px-4 py-3 font-semibold">{u.username}</td>
-                      <td className="px-4 py-3 text-gray-500 font-mono text-sm">{u.password}</td>
+                      <td className="px-4 py-3 text-gray-500 text-sm">{u.email || '-'}</td>
                       <td className="px-4 py-3">
                         <span className="text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-600">{u.role}</span>
                       </td>
