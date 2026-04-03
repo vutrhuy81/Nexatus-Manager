@@ -24,6 +24,15 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+// THÊM ĐOẠN NÀY ĐỂ DEBUG ĐĂNG NHẬP EMAIL
+transporter.verify(function (error, success) {
+  if (error) {
+    console.error("❌ LỖI ĐĂNG NHẬP EMAIL:", error);
+  } else {
+    console.log("✅ Server đã đăng nhập thành công vào Email:", process.env.EMAIL_USER);
+  }
+});
+
 // ==========================================
 // 1. KẾT NỐI MONGODB & ĐỊNH NGHĨA SCHEMA
 // ==========================================
@@ -131,21 +140,27 @@ async function sendLogEmail(user: string, action: string, details: string, times
           </p>
         </div>
       `
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log("✉️ Đã gửi email thông báo thành công!");
-  } catch (error) {
-    console.error("❌ Lỗi khi gửi email:", error);
+    };   
+    
+    console.log(`⏳ Đang thực hiện gửi email tới: ${targetEmails.join(', ')}...`);    
+    const info = await transporter.sendMail(mailOptions);    
+    console.log("✉️ GỬI EMAIL THÀNH CÔNG!");
+    console.log("👉 Message ID:", info.messageId);
+    console.log("👉 Phản hồi từ Server:", info.response);
+  } catch (error: any) {
+    console.error("❌ LỖI TRONG QUÁ TRÌNH GỬI EMAIL:");
+    console.error("- Tên lỗi:", error.name);
+    console.error("- Mã lỗi:", error.code);
+    console.error("- Thông báo:", error.message);
   }
 }
 
 async function writeLog(user: string, action: string, details: string) {
   const timestamp = new Date().toISOString();
   try {
-    await Log.create({ timestamp, user, action, details });
-    // Gọi hàm gửi email nhưng KHÔNG await để không làm chậm trải nghiệm của người dùng trên web
-    sendLogEmail(user, action, details, timestamp);
+    await Log.create({ timestamp, user, action, details });    
+    // BẮT BUỘC THÊM AWAIT Ở ĐÂY KHI CHẠY TRÊN VERCEL // Gọi hàm gửi email nhưng KHÔNG await để không làm chậm trải nghiệm của người dùng trên web
+    await sendLogEmail(user, action, details, timestamp);
   } catch (error) {
     console.error("Lỗi khi ghi log vào MongoDB:", error);
   }
