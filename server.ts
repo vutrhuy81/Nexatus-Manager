@@ -124,7 +124,7 @@ async function sendLogEmail(user: string, action: string, details: string, times
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
             <tr>
               <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: bold; width: 120px; background-color: #f9fafb;">Thời gian</td>
-              <td style="padding: 12px; border: 1px solid #e5e7eb;">${new Date(timestamp).toLocaleString('vi-VN')}</td>
+              <td style="padding: 12px; border: 1px solid #e5e7eb;">${new Date(timestamp).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</td>
             </tr>
             <tr>
               <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: bold; background-color: #f9fafb;">Hành động</td>
