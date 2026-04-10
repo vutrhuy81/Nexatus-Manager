@@ -288,6 +288,24 @@ async function startServer() {
       const { data: recordData, user, action, details } = req.body;
       if (!recordData) return res.status(400).json({ error: "Không có dữ liệu gửi lên" });
 
+      // KIỂM TRA TRÙNG LẶP TÊN CÔNG TRÌNH HOẶC MÃ KHÁCH HÀNG
+      const duplicateQuery: any = {
+        $or: [
+          { 'Tên công trình': recordData['Tên công trình'] },
+          { 'Mã khách hàng': recordData['Mã khách hàng'] }
+        ]
+      };
+      
+      // Nếu là cập nhật, bỏ qua record hiện tại
+      if (recordData._id) {
+        duplicateQuery._id = { $ne: recordData._id };
+      }
+
+      const duplicateCheck = await Dataset.findOne(duplicateQuery);
+      if (duplicateCheck) {
+        return res.status(400).json({ error: `Từ chối lưu: "Tên công trình" hoặc "Mã khách hàng" đã tồn tại trong hệ thống!` });
+      }  
+      
       let savedRecord;
       if (recordData._id) {
         const { _id, ...updateFields } = recordData;
@@ -297,7 +315,9 @@ async function startServer() {
       }
       if (user && action) await writeLog(user, action, details || "");
       res.json({ message: "Lưu dữ liệu thành công", data: savedRecord });
-    } catch (error) { res.status(500).json({ error: "Failed to save data" }); }
+    } catch (error) { 
+      res.status(500).json({ error: "Failed to save data" }); 
+    }
   });
 
   app.delete("/api/data/:id", async (req, res) => {
