@@ -137,10 +137,13 @@ export default function App() {
         setIsModalOpen(false);
         setEditingProject(null);
       } else {
-        alert("Có lỗi xảy ra khi lưu dữ liệu lên server.");
+        // XỬ LÝ LỖI TRÙNG LẶP TRẢ VỀ TỪ SERVER
+        const errorData = await res.json();
+        alert(errorData.error || "Có lỗi xảy ra khi lưu dữ liệu lên server.");
       }
     } catch (error) {
       console.error('Failed to save data', error);
+      alert("Lỗi kết nối máy chủ khi lưu dữ liệu.");
     }
   };
 
