@@ -303,7 +303,7 @@ async function startServer() {
 
       const duplicateCheck = await Dataset.findOne(duplicateQuery);
       if (duplicateCheck) {
-        return res.status(400).json({ error: `Từ chối lưu: "Tên công trình" hoặc "Mã khách hàng" đã tồn tại trong hệ thống!` });
+        return res.status(400).json({ error: `Lỗi: "Tên công trình" hoặc "Mã khách hàng" đã tồn tại trong hệ thống!` });
       }  
       
       let savedRecord;
