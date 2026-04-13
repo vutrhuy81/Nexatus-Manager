@@ -288,24 +288,29 @@ async function startServer() {
       const { data: recordData, user, action, details } = req.body;
       if (!recordData) return res.status(400).json({ error: "Không có dữ liệu gửi lên" });
 
-      // KIỂM TRA TRÙNG LẶP TÊN CÔNG TRÌNH HOẶC MÃ KHÁCH HÀNG
-      const duplicateQuery: any = {
-        $or: [
-          { 'Tên công trình': recordData['Tên công trình'] },
-          { 'Mã khách hàng': recordData['Mã khách hàng'] }
-        ]
-      };
-      
-      // Nếu là cập nhật, bỏ qua record hiện tại
-      if (recordData._id) {
-        duplicateQuery._id = { $ne: recordData._id };
+      // SỬA LỖI SO SÁNH TRÙNG LẶP (Ép kiểu ObjectId & Kiểm tra chuỗi rỗng)
+      const orConditions = [];
+      if (recordData['Tên công trình'] && recordData['Tên công trình'].trim() !== '') {
+        orConditions.push({ 'Tên công trình': recordData['Tên công trình'].trim() });
+      }
+      if (recordData['Mã khách hàng'] && recordData['Mã khách hàng'].trim() !== '') {
+        orConditions.push({ 'Mã khách hàng': recordData['Mã khách hàng'].trim() });
       }
 
-      const duplicateCheck = await Dataset.findOne(duplicateQuery);
-      if (duplicateCheck) {
-        return res.status(400).json({ error: `Lỗi: "Tên công trình" hoặc "Mã khách hàng" đã tồn tại trong hệ thống!` });
-      }  
-      
+      if (orConditions.length > 0) {
+        const duplicateQuery: any = { $or: orConditions };
+        
+        // Nếu là cập nhật, bỏ qua record hiện tại (Bắt buộc ép kiểu _id sang ObjectId)
+        if (recordData._id && mongoose.Types.ObjectId.isValid(recordData._id)) {
+          duplicateQuery._id = { $ne: new mongoose.Types.ObjectId(recordData._id) };
+        }
+
+        const duplicateCheck = await Dataset.findOne(duplicateQuery);
+        if (duplicateCheck) {
+          return res.status(400).json({ error: `Từ chối lưu: "Tên công trình" hoặc "Mã khách hàng" đã tồn tại trong hệ thống!` });
+        }
+      }
+
       let savedRecord;
       if (recordData._id) {
         const { _id, ...updateFields } = recordData;
