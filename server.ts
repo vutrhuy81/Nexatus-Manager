@@ -5,8 +5,9 @@ import { stringify } from "csv-stringify/sync";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import mongoose from "mongoose";
+import { Types } from "mongoose"; // BỔ SUNG IMPORT ĐỂ SỬ DỤNG LỆNH KIỂM TRA OBJECTID
 import dotenv from "dotenv";
-import nodemailer from "nodemailer"; // BỔ SUNG THƯ VIỆN GỬI MAIL
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -19,17 +20,8 @@ const __dirname = path.dirname(__filename);
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER, // VD: địa chỉ email gửi đi (gmail của bạn)
-    pass: process.env.EMAIL_PASS  // Mật khẩu ứng dụng (App Password) của Gmail
-  }
-});
-
-// THÊM ĐOẠN NÀY ĐỂ DEBUG ĐĂNG NHẬP EMAIL
-transporter.verify(function (error, success) {
-  if (error) {
-    console.error("❌ LỖI ĐĂNG NHẬP EMAIL:", error);
-  } else {
-    console.log("✅ Server đã đăng nhập thành công vào Email:", process.env.EMAIL_USER);
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS 
   }
 });
 
@@ -64,7 +56,7 @@ const Dataset = mongoose.model("Dataset", dataSchema);
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  email: { type: String }, // Bổ sung để lưu email user
+  email: { type: String }, 
   role: { type: String, required: true },
   agencyName: { type: String }
 }, { versionKey: false });
@@ -94,25 +86,18 @@ async function seedAdminUser() {
   }
 }
 
-// HÀM GỬI EMAIL THÔNG BÁO LOG
 async function sendLogEmail(user: string, action: string, details: string, timestamp: string) {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log("⚠️ Bỏ qua gửi email: Chưa cấu hình EMAIL_USER và EMAIL_PASS trong biến môi trường.");
     return;
   }
-
   try {
-    // 1. Lấy danh sách email của tất cả Admin & Operation từ Database
     const adminOpUsers = await UserDB.find({ role: { $in: ['ADMIN', 'OPERATION'] } }, 'email').lean();
     const dbEmails = adminOpUsers.map(u => u.email).filter(e => e && e.trim() !== '');
-
-    // 2. Gộp với danh sách email mặc định (tránh trùng lặp)
     const defaultEmails = ['vutrhuy81@gmail.com', 'eduon.ltd@gmail.com'];
     const targetEmails = Array.from(new Set([...dbEmails, ...defaultEmails]));
 
     if (targetEmails.length === 0) return;
 
-    // 3. Khung giao diện HTML cho Email
     const mailOptions = {
       from: `"Hệ thống Nexatus Ops" <${process.env.EMAIL_USER}>`,
       to: targetEmails.join(', '),
@@ -135,31 +120,19 @@ async function sendLogEmail(user: string, action: string, details: string, times
               <td style="padding: 12px; border: 1px solid #e5e7eb; line-height: 1.5;">${details}</td>
             </tr>
           </table>
-          <p style="margin-top: 30px; font-size: 12px; color: #6b7280; text-align: center;">
-            Đây là email thông báo tự động từ hệ thống Nexatus Manager.<br>Vui lòng không trả lời email này.
-          </p>
         </div>
       `
-    };   
-    
-    console.log(`⏳ Đang thực hiện gửi email tới: ${targetEmails.join(', ')}...`);    
-    const info = await transporter.sendMail(mailOptions);    
-    console.log("✉️ GỬI EMAIL THÀNH CÔNG!");
-    console.log("👉 Message ID:", info.messageId);
-    console.log("👉 Phản hồi từ Server:", info.response);
-  } catch (error: any) {
-    console.error("❌ LỖI TRONG QUÁ TRÌNH GỬI EMAIL:");
-    console.error("- Tên lỗi:", error.name);
-    console.error("- Mã lỗi:", error.code);
-    console.error("- Thông báo:", error.message);
+    };
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("❌ Lỗi khi gửi email:", error);
   }
 }
 
 async function writeLog(user: string, action: string, details: string) {
   const timestamp = new Date().toISOString();
   try {
-    await Log.create({ timestamp, user, action, details });    
-    // BẮT BUỘC THÊM AWAIT Ở ĐÂY KHI CHẠY TRÊN VERCEL // Gọi hàm gửi email nhưng KHÔNG await để không làm chậm trải nghiệm của người dùng trên web
+    await Log.create({ timestamp, user, action, details });
     await sendLogEmail(user, action, details, timestamp);
   } catch (error) {
     console.error("Lỗi khi ghi log vào MongoDB:", error);
@@ -288,7 +261,7 @@ async function startServer() {
       const { data: recordData, user, action, details } = req.body;
       if (!recordData) return res.status(400).json({ error: "Không có dữ liệu gửi lên" });
 
-      // SỬA LỖI SO SÁNH TRÙNG LẶP (Ép kiểu ObjectId & Kiểm tra chuỗi rỗng)
+      // KIỂM TRA TRÙNG LẶP AN TOÀN
       const orConditions = [];
       if (recordData['Tên công trình'] && recordData['Tên công trình'].trim() !== '') {
         orConditions.push({ 'Tên công trình': recordData['Tên công trình'].trim() });
@@ -300,9 +273,9 @@ async function startServer() {
       if (orConditions.length > 0) {
         const duplicateQuery: any = { $or: orConditions };
         
-        // Nếu là cập nhật, bỏ qua record hiện tại (Bắt buộc ép kiểu _id sang ObjectId)
-        if (recordData._id && mongoose.Types.ObjectId.isValid(recordData._id)) {
-          duplicateQuery._id = { $ne: new mongoose.Types.ObjectId(recordData._id) };
+        // Đã sửa lại logic kiểm tra ID khi cập nhật
+        if (recordData._id && Types.ObjectId.isValid(recordData._id)) {
+          duplicateQuery._id = { $ne: new Types.ObjectId(recordData._id) };
         }
 
         const duplicateCheck = await Dataset.findOne(duplicateQuery);
@@ -320,8 +293,9 @@ async function startServer() {
       }
       if (user && action) await writeLog(user, action, details || "");
       res.json({ message: "Lưu dữ liệu thành công", data: savedRecord });
-    } catch (error) { 
-      res.status(500).json({ error: "Failed to save data" }); 
+    } catch (error: any) { 
+      console.error("Data Save Error: ", error);
+      res.status(500).json({ error: "Failed to save data: " + error.message }); 
     }
   });
 
