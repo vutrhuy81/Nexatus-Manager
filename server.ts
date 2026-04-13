@@ -5,7 +5,6 @@ import { stringify } from "csv-stringify/sync";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import mongoose from "mongoose";
-import { Types } from "mongoose"; // BỔ SUNG IMPORT ĐỂ SỬ DỤNG LỆNH KIỂM TRA OBJECTID
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 
@@ -261,7 +260,7 @@ async function startServer() {
       const { data: recordData, user, action, details } = req.body;
       if (!recordData) return res.status(400).json({ error: "Không có dữ liệu gửi lên" });
 
-      // KIỂM TRA TRÙNG LẶP AN TOÀN
+      // KIỂM TRA TRÙNG LẶP (Xử lý bằng Logic thay vì ép kiểu Mongoose)
       const orConditions = [];
       if (recordData['Tên công trình'] && recordData['Tên công trình'].trim() !== '') {
         orConditions.push({ 'Tên công trình': recordData['Tên công trình'].trim() });
@@ -271,16 +270,16 @@ async function startServer() {
       }
 
       if (orConditions.length > 0) {
-        const duplicateQuery: any = { $or: orConditions };
+        // Tìm toàn bộ các bản ghi bị trùng Tên hoặc Mã
+        const duplicates = await Dataset.find({ $or: orConditions });
         
-        // Đã sửa lại logic kiểm tra ID khi cập nhật
-        if (recordData._id && Types.ObjectId.isValid(recordData._id)) {
-          duplicateQuery._id = { $ne: new Types.ObjectId(recordData._id) };
-        }
-
-        const duplicateCheck = await Dataset.findOne(duplicateQuery);
-        if (duplicateCheck) {
-          return res.status(400).json({ error: `Từ chối lưu: "Tên công trình" hoặc "Mã khách hàng" đã tồn tại trong hệ thống!` });
+        if (duplicates.length > 0) {
+          // Lọc ra bản ghi bị trùng MÀ CÓ ID KHÁC VỚI BẢN GHI ĐANG SỬA
+          const isRealDuplicate = duplicates.some(doc => String(doc._id) !== String(recordData._id));
+          
+          if (isRealDuplicate) {
+            return res.status(400).json({ error: `Từ chối lưu: "Tên công trình" hoặc "Mã khách hàng" đã tồn tại trong hệ thống!` });
+          }
         }
       }
 
