@@ -260,7 +260,7 @@ async function startServer() {
       const { data: recordData, user, action, details } = req.body;
       if (!recordData) return res.status(400).json({ error: "Không có dữ liệu gửi lên" });
 
-      // KIỂM TRA TRÙNG LẶP (Xử lý bằng Logic thay vì ép kiểu Mongoose)
+      // KIỂM TRA TRÙNG LẶP CHÍNH XÁC (Dùng .lean() và .toString())
       const orConditions = [];
       if (recordData['Tên công trình'] && recordData['Tên công trình'].trim() !== '') {
         orConditions.push({ 'Tên công trình': recordData['Tên công trình'].trim() });
@@ -270,12 +270,17 @@ async function startServer() {
       }
 
       if (orConditions.length > 0) {
-        // Tìm toàn bộ các bản ghi bị trùng Tên hoặc Mã
-        const duplicates = await Dataset.find({ $or: orConditions });
+        // Dùng .lean() để trả về Javascript Object thuần, tránh lỗi liên quan ObjectId của Mongoose
+        const duplicates = await Dataset.find({ $or: orConditions }).lean();
         
         if (duplicates.length > 0) {
-          // Lọc ra bản ghi bị trùng MÀ CÓ ID KHÁC VỚI BẢN GHI ĐANG SỬA
-          const isRealDuplicate = duplicates.some(doc => String(doc._id) !== String(recordData._id));
+          const isRealDuplicate = duplicates.some((doc: any) => {
+            // Nếu đang Tạo mới/Sao chép (không có _id) -> Chắc chắn là lỗi trùng lặp
+            if (!recordData._id) return true;
+            
+            // Nếu đang Cập nhật (có _id) -> Chỉ báo trùng nếu ID tìm thấy KHÁC với ID đang sửa
+            return doc._id.toString() !== recordData._id.toString();
+          });
           
           if (isRealDuplicate) {
             return res.status(400).json({ error: `Từ chối lưu: "Tên công trình" hoặc "Mã khách hàng" đã tồn tại trong hệ thống!` });
