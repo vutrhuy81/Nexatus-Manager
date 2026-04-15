@@ -137,7 +137,6 @@ export default function App() {
         setIsModalOpen(false);
         setEditingProject(null);
       } else {
-        // XỬ LÝ LỖI TRÙNG LẶP TRẢ VỀ TỪ SERVER
         const errorData = await res.json();
         alert(errorData.error || "Có lỗi xảy ra khi lưu dữ liệu lên server.");
       }
@@ -650,6 +649,14 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     } catch (error) { console.error(error); }
   };
 
+  // XỬ LÝ HÀNH ĐỘNG EXPORT SỰ CỐ
+  const handleExportIncidents = () => {
+    const url = currentUser.role === 'AGENCY' 
+      ? `/api/export/incidents?agency=${encodeURIComponent(currentUser.agencyName || '')}`
+      : `/api/export/incidents`;
+    window.open(url, '_blank');
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
@@ -665,6 +672,11 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
               </div>
             </div>
             <div className="flex gap-2">
+              {/* NÚT EXPORT SỰ CỐ */}
+              <button onClick={handleExportIncidents} className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 flex items-center gap-2 transition-colors">
+                <Download size={16} /> Export
+              </button>
+
               <button onClick={() => { setEditingIncident(null); setIsFormOpen(true); }} className="px-4 py-2 bg-orange-600 text-white text-sm font-semibold rounded-xl hover:bg-orange-700 flex items-center gap-2">
                 <Plus size={16} /> Thêm Phản Ánh
               </button>
