@@ -260,29 +260,19 @@ async function startServer() {
       const { data: recordData, user, action, details } = req.body;
       if (!recordData) return res.status(400).json({ error: "Không có dữ liệu gửi lên" });
 
-      // KIỂM TRA TRÙNG LẶP CHÍNH XÁC (Dùng .lean() và .toString())
-      const orConditions = [];
-      if (recordData['Tên công trình'] && recordData['Tên công trình'].trim() !== '') {
-        orConditions.push({ 'Tên công trình': recordData['Tên công trình'].trim() });
-      }
-      if (recordData['Mã khách hàng'] && recordData['Mã khách hàng'].trim() !== '') {
-        orConditions.push({ 'Mã khách hàng': recordData['Mã khách hàng'].trim() });
-      }
+      // CHỈ KIỂM TRA TRÙNG LẶP KHI LÀ KHAI BÁO MỚI/SAO CHÉP (Khách hàng yêu cầu: Không kiểm tra khi Cập nhật)
+      if (!recordData._id) {
+        const orConditions = [];
+        if (recordData['Tên công trình'] && recordData['Tên công trình'].trim() !== '') {
+          orConditions.push({ 'Tên công trình': recordData['Tên công trình'].trim() });
+        }
+        if (recordData['Mã khách hàng'] && recordData['Mã khách hàng'].trim() !== '') {
+          orConditions.push({ 'Mã khách hàng': recordData['Mã khách hàng'].trim() });
+        }
 
-      if (orConditions.length > 0) {
-        // Dùng .lean() để trả về Javascript Object thuần, tránh lỗi liên quan ObjectId của Mongoose
-        const duplicates = await Dataset.find({ $or: orConditions }).lean();
-        
-        if (duplicates.length > 0) {
-          const isRealDuplicate = duplicates.some((doc: any) => {
-            // Nếu đang Tạo mới/Sao chép (không có _id) -> Chắc chắn là lỗi trùng lặp
-            if (!recordData._id) return true;
-            
-            // Nếu đang Cập nhật (có _id) -> Chỉ báo trùng nếu ID tìm thấy KHÁC với ID đang sửa
-            return doc._id.toString() !== recordData._id.toString();
-          });
-          
-          if (isRealDuplicate) {
+        if (orConditions.length > 0) {
+          const duplicateCheck = await Dataset.findOne({ $or: orConditions }).lean();
+          if (duplicateCheck) {
             return res.status(400).json({ error: `Từ chối lưu: "Tên công trình" hoặc "Mã khách hàng" đã tồn tại trong hệ thống!` });
           }
         }
@@ -344,6 +334,26 @@ async function startServer() {
       res.setHeader("Content-Disposition", "attachment; filename=activity_log.csv");
       res.send(bom + content);
     } catch (error) { res.status(500).send("Export failed"); }
+  });
+
+  // TÍNH NĂNG MỚI: EXPORT DỮ LIỆU SỰ CỐ
+  app.get("/api/export/incidents", async (req, res) => {
+    try {
+      const { agency } = req.query;
+      const query = agency ? { 'Tên đại lý': agency } : {};
+      
+      // Lấy dữ liệu sự cố nhưng LOẠI BỎ 2 cột chứa Base64 ảnh (để không làm hỏng/nặng file CSV)
+      const records = await Incident.find(query, { _id: 0, 'Ảnh': 0, 'Ảnh kết quả': 0 }).lean();
+      
+      if (!records || records.length === 0) return res.status(404).send("No incidents found");
+      const content = stringify(records, { header: true });
+      const bom = "\uFEFF"; 
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", "attachment; filename=incidents_export.csv");
+      res.send(bom + content);
+    } catch (error) { 
+      res.status(500).send("Export incidents failed"); 
+    }
   });
 
   if (process.env.NODE_ENV !== "production") {
