@@ -33,6 +33,7 @@ export default function App() {
   });
 
   const [data, setData] = useState<ProjectData[]>([]);
+  const [incidentsData, setIncidentsData] = useState<IncidentData[]>([]); // STATE LƯU DỮ LIỆU SỰ CỐ CHO DASHBOARD
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -40,8 +41,8 @@ export default function App() {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
   
-  // STATE MỚI: Chỉ cho phép chọn 1 biểu đồ duy nhất hiển thị
-  const [activeChart, setActiveChart] = useState<'agency' | 'corporation' | 'powerCompany'>('agency');
+  // STATE: Bổ sung thêm tùy chọn 'incidentAgency'
+  const [activeChart, setActiveChart] = useState<'agency' | 'corporation' | 'powerCompany' | 'incidentAgency'>('agency');
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,9 +56,11 @@ export default function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
+  // Lấy dữ liệu công trình và sự cố khi đã có user
   useEffect(() => {
     if (user) {
       fetchData();
+      fetchIncidentsData();
     }
   }, [user]);
 
@@ -100,6 +103,21 @@ export default function App() {
       console.error('Failed to fetch data', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // HÀM LẤY DỮ LIỆU SỰ CỐ CHO BIỂU ĐỒ DASHBOARD
+  const fetchIncidentsData = async () => {
+    try {
+      const res = await fetch('/api/incidents', { headers: { 'x-user-role': user?.role || '' } });
+      const json = await res.json();
+      if (user?.role === 'AGENCY') {
+        setIncidentsData(json.filter((i: any) => i['Tên đại lý'] === user?.agencyName));
+      } else {
+        setIncidentsData(json);
+      }
+    } catch (error) {
+      console.error('Failed to fetch incidents', error);
     }
   };
 
@@ -453,7 +471,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ - DẠNG RADIO CHỌN 1 */}
+        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ - BỔ SUNG RADIO SỰ CỐ */}
         <div className="bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center gap-6 mb-6">
           <div className="text-sm font-bold text-gray-700 flex items-center gap-2">
             <PieChart size={16} className="text-primary" />
@@ -490,15 +508,26 @@ export default function App() {
               />
               <span className="text-sm font-medium text-gray-600 group-hover:text-primary transition-colors">Điện lực trực thuộc</span>
             </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input 
+                type="radio" 
+                name="chartType"
+                checked={activeChart === 'incidentAgency'} 
+                onChange={() => setActiveChart('incidentAgency')} 
+                className="w-4 h-4 text-orange-500 bg-gray-100 border-gray-300 focus:ring-orange-500 cursor-pointer" 
+              />
+              <span className="text-sm font-medium text-gray-600 group-hover:text-orange-500 transition-colors">Sự cố theo Đại lý</span>
+            </label>
           </div>
         </div>
 
-        {/* KHU VỰC HIỂN THỊ 1 BIỂU ĐỒ DUY NHẤT CHIẾM FULL CHIỀU RỘNG */}
+        {/* KHU VỰC HIỂN THỊ BIỂU ĐỒ TÙY CHỌN CHIẾM FULL CHIỀU RỘNG */}
         <div className="mb-8 min-h-[160px]">
           <AnimatePresence mode="wait">
             {activeChart === 'agency' && <StatPieChart key="agency" data={filteredData} dataKey="Tên đại lý" title="Thống Kê Đại Lý" />}
             {activeChart === 'corporation' && <StatPieChart key="corp" data={filteredData} dataKey="Tổng công ty" title="Thống Kê Tổng Công Ty" />}
             {activeChart === 'powerCompany' && <StatPieChart key="pc" data={filteredData} dataKey="Công ty điện lực" title="Thống Kê Điện Lực Trực Thuộc" />}
+            {activeChart === 'incidentAgency' && <StatPieChart key="incAgency" data={incidentsData} dataKey="Tên đại lý" title="Thống Kê Sự Cố Theo Đại Lý" unit="sự cố" />}
           </AnimatePresence>
         </div>
 
@@ -680,7 +709,10 @@ export default function App() {
           <IncidentListModal 
             currentUser={user}
             projects={data}
-            onClose={() => setIsIncidentListOpen(false)}
+            onClose={() => {
+              setIsIncidentListOpen(false);
+              fetchIncidentsData(); // Refresh lại dữ liệu biểu đồ Sự cố khi đóng Modal
+            }}
           />
         )}
       </AnimatePresence>
@@ -1046,7 +1078,7 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
 // ============================================================================
 // COMPONENT 1 BIỂU ĐỒ TO - GIAO DIỆN THOÁNG (FULL WIDTH)
 // ============================================================================
-function StatPieChart({ data, dataKey, title }: { data: ProjectData[], dataKey: keyof ProjectData, title: string }) {
+function StatPieChart({ data, dataKey, title, unit = "công trình" }: { data: any[], dataKey: string, title: string, unit?: string }) {
   const stats = useMemo(() => {
     const counts: Record<string, number> = {};
     data.forEach(p => {
@@ -1086,7 +1118,7 @@ function StatPieChart({ data, dataKey, title }: { data: ProjectData[], dataKey: 
           </div>
           <h3 className="text-lg font-serif font-bold text-gray-800">{title}</h3>
         </div>
-        <p className="text-xs text-gray-500">Tỉ lệ phân bổ dựa trên {total} công trình đang hiển thị</p>
+        <p className="text-xs text-gray-500">Tỉ lệ phân bổ dựa trên {total} {unit} đang hiển thị</p>
       </div>
       
       <div className="flex flex-col md:flex-row items-center gap-8 w-full justify-around md:justify-start">
