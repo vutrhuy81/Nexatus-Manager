@@ -657,6 +657,7 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
   const [loading, setLoading] = useState(true);
   const [editingIncident, setEditingIncident] = useState<IncidentData | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(''); // Thêm state cho ô tìm kiếm sự cố
 
   useEffect(() => {
     fetchIncidents();
@@ -695,7 +696,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     } catch (error) { console.error(error); }
   };
 
-  // XỬ LÝ HÀNH ĐỘNG EXPORT SỰ CỐ
   const handleExportIncidents = () => {
     const url = currentUser.role === 'AGENCY' 
       ? `/api/export/incidents?agency=${encodeURIComponent(currentUser.agencyName || '')}`
@@ -703,13 +703,23 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     window.open(url, '_blank');
   };
 
+  // Logic lọc dữ liệu sự cố dựa trên searchTerm
+  const filteredIncidents = useMemo(() => {
+    if (!searchTerm) return incidents;
+    const lower = searchTerm.toLowerCase();
+    return incidents.filter(inc => 
+      (inc['Công trình'] || '').toLowerCase().includes(lower) ||
+      (inc['Mô tả sự cố'] || '').toLowerCase().includes(lower)
+    );
+  }, [incidents, searchTerm]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
       
       {!isFormOpen ? (
         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl flex flex-col">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 shrink-0">
+          <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/50 shrink-0">
             <div className="flex items-center gap-3">
               <div className="bg-orange-500 p-2 rounded-xl text-white"><AlertTriangle size={20} /></div>
               <div>
@@ -717,8 +727,20 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
                 <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Incident Reports</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              {/* NÚT EXPORT SỰ CỐ */}
+            
+            <div className="flex flex-wrap items-center gap-2">
+              {/* THANH TÌM KIẾM SỰ CỐ */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input 
+                  type="text"
+                  placeholder="Tìm công trình, sự cố..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 w-full sm:w-64 shadow-sm transition-all"
+                />
+              </div>
+
               <button onClick={handleExportIncidents} className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 flex items-center gap-2 transition-colors">
                 <Download size={16} /> Export
               </button>
@@ -726,6 +748,7 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
               <button onClick={() => { setEditingIncident(null); setIsFormOpen(true); }} className="px-4 py-2 bg-orange-600 text-white text-sm font-semibold rounded-xl hover:bg-orange-700 flex items-center gap-2">
                 <Plus size={16} /> Thêm Phản Ánh
               </button>
+              
               <button onClick={onClose} className="p-2 hover:bg-white rounded-full text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
           </div>
@@ -742,8 +765,8 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? <tr><td colSpan={5} className="p-4 text-center text-gray-400">Đang tải...</td></tr> : 
-                 incidents.length === 0 ? <tr><td colSpan={5} className="p-4 text-center text-gray-400">Không có sự cố nào</td></tr> :
-                 incidents.map(inc => (
+                 filteredIncidents.length === 0 ? <tr><td colSpan={5} className="p-4 text-center text-gray-400">Không có sự cố nào</td></tr> :
+                 filteredIncidents.map(inc => (
                   <tr key={inc._id} className="hover:bg-gray-50/50">
                     <td className="px-4 py-3 text-xs text-gray-500 font-mono">{new Date(inc['Ngày giờ phản ánh']).toLocaleString('vi-VN')}</td>
                     <td className="px-4 py-3 font-medium text-sm">{inc['Công trình']}</td>
