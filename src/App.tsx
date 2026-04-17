@@ -24,10 +24,9 @@ import {
   ArrowUpDown,
   AlertTriangle 
 } from 'lucide-react';
-import { User, ProjectData, IncidentData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS } from './types';
+import { User, ProjectData, IncidentData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS, CORPORATIONS, POWER_COMPANIES } from './types';
 
 export default function App() {
-  // 1. LẤY THÔNG TIN TỪ LOCAL STORAGE KHI LOAD TRANG ĐỂ CHỐNG F5 MẤT ĐĂNG NHẬP
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('nexatus_user');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -41,7 +40,6 @@ export default function App() {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
   
-  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false); 
@@ -53,43 +51,35 @@ export default function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  // Lấy dữ liệu công trình khi đã có user
   useEffect(() => {
     if (user) {
       fetchData();
     }
   }, [user]);
 
-  // 2. TÍNH NĂNG TỰ ĐỘNG ĐĂNG XUẤT SAU 5 PHÚT KHÔNG HOẠT ĐỘNG
   useEffect(() => {
-    if (!user) return; // Không làm gì nếu chưa đăng nhập
+    if (!user) return; 
 
     let timeoutId: ReturnType<typeof setTimeout>;
 
-    // Hàm thực hiện đăng xuất
     const performLogout = () => {
       setUser(null);
       setUsername('');
       setPassword('');
-      localStorage.removeItem('nexatus_user'); // Xóa bộ nhớ
+      localStorage.removeItem('nexatus_user'); 
       alert("Phiên đăng nhập đã hết hạn do không có hoạt động trong 5 phút. Vui lòng đăng nhập lại.");
     };
 
-    // Hàm reset lại thời gian 5 phút
     const resetTimer = () => {
       clearTimeout(timeoutId);
-      // 5 phút = 5 * 60 * 1000 = 300,000 milliseconds
       timeoutId = setTimeout(performLogout, 300000); 
     };
 
-    // Lắng nghe các thao tác của người dùng trên trang
     const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
     events.forEach(event => window.addEventListener(event, resetTimer));
 
-    // Khởi động bộ đếm lần đầu
     resetTimer();
 
-    // Dọn dẹp sự kiện khi component unmount
     return () => {
       clearTimeout(timeoutId);
       events.forEach(event => window.removeEventListener(event, resetTimer));
@@ -120,7 +110,6 @@ export default function App() {
       const data = await res.json();
       if (data.success) {
         setUser(data.user);
-        // 3. LƯU THÔNG TIN VÀO LOCAL STORAGE KHI ĐĂNG NHẬP THÀNH CÔNG
         localStorage.setItem('nexatus_user', JSON.stringify(data.user));
         setLoginError('');
       } else {
@@ -135,7 +124,6 @@ export default function App() {
     setUser(null);
     setUsername('');
     setPassword('');
-    // 4. XÓA LOCAL STORAGE KHI ĐĂNG XUẤT CHỦ ĐỘNG
     localStorage.removeItem('nexatus_user');
   };
 
@@ -657,7 +645,7 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
   const [loading, setLoading] = useState(true);
   const [editingIncident, setEditingIncident] = useState<IncidentData | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(''); // Thêm state cho ô tìm kiếm sự cố
+  const [searchTerm, setSearchTerm] = useState(''); 
 
   useEffect(() => {
     fetchIncidents();
@@ -703,7 +691,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     window.open(url, '_blank');
   };
 
-  // Logic lọc dữ liệu sự cố dựa trên searchTerm
   const filteredIncidents = useMemo(() => {
     if (!searchTerm) return incidents;
     const lower = searchTerm.toLowerCase();
@@ -729,7 +716,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
             </div>
             
             <div className="flex flex-wrap items-center gap-2">
-              {/* THANH TÌM KIẾM SỰ CỐ */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                 <input 
@@ -1078,7 +1064,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
   const [editingId, setEditingId] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState(''); // BỔ SUNG KHAI BÁO EMAIL CHO USER
+  const [email, setEmail] = useState(''); 
   const [role, setRole] = useState('OPERATION');
   const [agencyName, setAgencyName] = useState('');
 
@@ -1111,7 +1097,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
           _id: editingId || undefined,
           username,
           password,
-          email, // TRUYỀN EMAIL XUỐNG DB
+          email, 
           role,
           agencyName: role === 'AGENCY' ? agencyName : ''
         })
@@ -1133,7 +1119,7 @@ function UserManagementModal({ currentUser, onClose }: { currentUser: User; onCl
     setEditingId(u._id);
     setUsername(u.username);
     setPassword(u.password);
-    setEmail(u.email || ''); // FILL EMAIL NẾU CÓ
+    setEmail(u.email || ''); 
     setRole(u.role);
     setAgencyName(u.agencyName || '');
   };
@@ -1314,13 +1300,11 @@ function LogModal({ user, onClose }: { user: User; onClose: () => void }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  // Chuẩn hóa chuỗi: viết thường và cắt bỏ khoảng trắng thừa
   const lowerStatus = status?.toLowerCase().trim() || '';
   
-  let colorClass = 'bg-orange-50 text-orange-600'; // Màu cam mặc định
+  let colorClass = 'bg-orange-50 text-orange-600'; 
   let isSuccessIcon = false;
 
-  // KIỂM TRA CHÍNH XÁC TUYỆT ĐỐI
   if (lowerStatus === 'nok' || lowerStatus === 'không') {
     colorClass = 'bg-red-50 text-red-600';
   } else if (lowerStatus === 'ok' || lowerStatus === 'có') {
@@ -1338,7 +1322,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function ProjectModal({ user, project, onClose, onSave }: { user: User; project: ProjectData | null; onClose: () => void; onSave: (p: ProjectData) => void }) {
   const [formData, setFormData] = useState<any>(project || {
-    STT: '', 'Công ty điện lực': '', 'Đơn vị điện lực': '', 'Mã TBA': '', 'Mã xuất tuyến': '', 'Tên công trình': '',
+    STT: '', 'Tổng công ty': '', 'Công ty điện lực': '', 'Đơn vị điện lực': '', 'Mã TBA': '', 'Mã xuất tuyến': '', 'Tên công trình': '',
     'Mã khách hàng': '', 'Tên đại lý': user.agencyName || '', 'Địa chỉ': '', 'Listening interface': '', 'Preshared key': '',
     'Local ID': '', 'Remote ID': '', 'Local subnet': '', 'Remote subnet': '', Lat: '', Long: '', 'CSTK DC (kWp)': '',
     'CSTK AC (kW)': '', 'Công suất lắp đặt (kW)': '', 'Công suất tối đa (kW)': '', 'Zero export': 'Không', 'SN Nexatus': '', 'SIM IP tĩnh': '','Router IP tĩnh': '',
@@ -1354,7 +1338,7 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
     return false;
   };
 
-  const isRequired = (field: keyof ProjectData) => ['Công ty điện lực', 'Đơn vị điện lực', 'Tên công trình', 'Mã khách hàng', 'Tên đại lý', 'Địa chỉ', 'Listening interface', 'Preshared key', 'Local ID', 'Remote ID', 'Local subnet', 'Remote subnet', 'Nhà sản xuất Inverter', 'Mã Logger', 'Mã công tơ 2 chiều'].includes(field as string);
+  const isRequired = (field: keyof ProjectData) => ['Tổng công ty', 'Công ty điện lực', 'Đơn vị điện lực', 'Tên công trình', 'Mã khách hàng', 'Tên đại lý', 'Địa chỉ', 'Listening interface', 'Preshared key', 'Local ID', 'Remote ID', 'Local subnet', 'Remote subnet', 'Nhà sản xuất Inverter', 'Mã Logger', 'Mã công tơ 2 chiều'].includes(field as string);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1374,7 +1358,23 @@ function ProjectModal({ user, project, onClose, onSave }: { user: User; project:
         <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="flex-1 overflow-y-auto p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div className="col-span-full mb-2"><h3 className="text-xs font-bold uppercase text-primary border-b border-primary/10 pb-2">Thông Tin Chung</h3></div>
-            <FormField label="Công ty điện lực" required={isRequired('Công ty điện lực')} disabled={!canEditField('Công ty điện lực')} value={formData['Công ty điện lực']} onChange={(v: string) => setFormData({ ...formData, 'Công ty điện lực': v })} />
+            
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Tổng công ty {isRequired('Tổng công ty') && <span className="text-red-400">*</span>}</label>
+              <select disabled={!canEditField('Tổng công ty')} value={formData['Tổng công ty'] || ''} onChange={(e) => setFormData({ ...formData, 'Tổng công ty': e.target.value, 'Công ty điện lực': '' })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary text-sm disabled:opacity-60" required={isRequired('Tổng công ty')}>
+                <option value="">Chọn tổng công ty...</option>
+                {CORPORATIONS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Công ty điện lực {isRequired('Công ty điện lực') && <span className="text-red-400">*</span>}</label>
+              <select disabled={!canEditField('Công ty điện lực') || !formData['Tổng công ty']} value={formData['Công ty điện lực'] || ''} onChange={(e) => setFormData({ ...formData, 'Công ty điện lực': e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary text-sm disabled:opacity-60" required={isRequired('Công ty điện lực')}>
+                <option value="">Chọn công ty điện lực...</option>
+                {formData['Tổng công ty'] && POWER_COMPANIES[formData['Tổng công ty']]?.map(pc => <option key={pc} value={pc}>{pc}</option>)}
+              </select>
+            </div>
+
             <FormField label="Đơn vị điện lực" required={isRequired('Đơn vị điện lực')} disabled={!canEditField('Đơn vị điện lực')} value={formData['Đơn vị điện lực']} onChange={(v: string) => setFormData({ ...formData, 'Đơn vị điện lực': v })} />
             <FormField label="Tên công trình" required={isRequired('Tên công trình')} disabled={!canEditField('Tên công trình')} value={formData['Tên công trình']} onChange={(v: string) => setFormData({ ...formData, 'Tên công trình': v })} />
             <FormField label="Mã khách hàng" required={isRequired('Mã khách hàng')} disabled={!canEditField('Mã khách hàng')} value={formData['Mã khách hàng']} onChange={(v: string) => setFormData({ ...formData, 'Mã khách hàng': v })} />
