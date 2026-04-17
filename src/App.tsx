@@ -27,7 +27,6 @@ import {
 import { User, ProjectData, IncidentData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS, CORPORATIONS, POWER_COMPANIES } from './types';
 
 export default function App() {
-  // 1. LẤY THÔNG TIN TỪ LOCAL STORAGE KHI LOAD TRANG
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('nexatus_user');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -41,12 +40,8 @@ export default function App() {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
   
-  // STATE MỚI: QUẢN LÝ HIỂN THỊ BIỂU ĐỒ (Mặc định chỉ mở Đại lý)
-  const [activeCharts, setActiveCharts] = useState({
-    agency: true,
-    corporation: false,
-    powerCompany: false
-  });
+  // STATE MỚI: Chỉ cho phép chọn 1 biểu đồ duy nhất hiển thị
+  const [activeChart, setActiveChart] = useState<'agency' | 'corporation' | 'powerCompany'>('agency');
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,14 +55,12 @@ export default function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  // Lấy dữ liệu công trình khi đã có user
   useEffect(() => {
     if (user) {
       fetchData();
     }
   }, [user]);
 
-  // 2. TÍNH NĂNG TỰ ĐỘNG ĐĂNG XUẤT SAU 5 PHÚT
   useEffect(() => {
     if (!user) return; 
 
@@ -460,48 +453,53 @@ export default function App() {
           </div>
         </div>
 
-        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ */}
-        <div className="bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center gap-6 mb-4">
+        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ - DẠNG RADIO CHỌN 1 */}
+        <div className="bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center gap-6 mb-6">
           <div className="text-sm font-bold text-gray-700 flex items-center gap-2">
             <PieChart size={16} className="text-primary" />
-            Hiển thị thống kê:
+            Hiển thị thống kê theo:
           </div>
-          <div className="flex flex-wrap items-center gap-5">
+          <div className="flex flex-wrap items-center gap-6">
             <label className="flex items-center gap-2 cursor-pointer group">
               <input 
-                type="checkbox" 
-                checked={activeCharts.agency} 
-                onChange={(e) => setActiveCharts({...activeCharts, agency: e.target.checked})} 
-                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary cursor-pointer" 
+                type="radio" 
+                name="chartType"
+                checked={activeChart === 'agency'} 
+                onChange={() => setActiveChart('agency')} 
+                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" 
               />
               <span className="text-sm font-medium text-gray-600 group-hover:text-primary transition-colors">Đại lý</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
               <input 
-                type="checkbox" 
-                checked={activeCharts.corporation} 
-                onChange={(e) => setActiveCharts({...activeCharts, corporation: e.target.checked})} 
-                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary cursor-pointer" 
+                type="radio" 
+                name="chartType"
+                checked={activeChart === 'corporation'} 
+                onChange={() => setActiveChart('corporation')} 
+                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" 
               />
               <span className="text-sm font-medium text-gray-600 group-hover:text-primary transition-colors">Tổng công ty</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
               <input 
-                type="checkbox" 
-                checked={activeCharts.powerCompany} 
-                onChange={(e) => setActiveCharts({...activeCharts, powerCompany: e.target.checked})} 
-                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary cursor-pointer" 
+                type="radio" 
+                name="chartType"
+                checked={activeChart === 'powerCompany'} 
+                onChange={() => setActiveChart('powerCompany')} 
+                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" 
               />
-              <span className="text-sm font-medium text-gray-600 group-hover:text-primary transition-colors">Công ty điện lực</span>
+              <span className="text-sm font-medium text-gray-600 group-hover:text-primary transition-colors">Điện lực trực thuộc</span>
             </label>
           </div>
         </div>
 
-        {/* HỆ THỐNG BIỂU ĐỒ TÙY CHỈNH - 1 CỘT */}
-        <div className="flex flex-col gap-6 mb-8">
-          {activeCharts.agency && <StatPieChart data={filteredData} dataKey="Tên đại lý" title="Thống Kê Đại Lý" />}
-          {activeCharts.corporation && <StatPieChart data={filteredData} dataKey="Tổng công ty" title="Thống Kê Tổng Công Ty" />}
-          {activeCharts.powerCompany && <StatPieChart data={filteredData} dataKey="Công ty điện lực" title="Thống Kê Điện Lực" />}
+        {/* KHU VỰC HIỂN THỊ 1 BIỂU ĐỒ DUY NHẤT CHIẾM FULL CHIỀU RỘNG */}
+        <div className="mb-8 min-h-[160px]">
+          <AnimatePresence mode="wait">
+            {activeChart === 'agency' && <StatPieChart key="agency" data={filteredData} dataKey="Tên đại lý" title="Thống Kê Đại Lý" />}
+            {activeChart === 'corporation' && <StatPieChart key="corp" data={filteredData} dataKey="Tổng công ty" title="Thống Kê Tổng Công Ty" />}
+            {activeChart === 'powerCompany' && <StatPieChart key="pc" data={filteredData} dataKey="Công ty điện lực" title="Thống Kê Điện Lực Trực Thuộc" />}
+          </AnimatePresence>
         </div>
 
         <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
@@ -1046,7 +1044,7 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
 }
 
 // ============================================================================
-// COMPONENT 3 BIỂU ĐỒ PIE CHART MỚI
+// COMPONENT 1 BIỂU ĐỒ TO - GIAO DIỆN THOÁNG (FULL WIDTH)
 // ============================================================================
 function StatPieChart({ data, dataKey, title }: { data: ProjectData[], dataKey: keyof ProjectData, title: string }) {
   const stats = useMemo(() => {
@@ -1065,7 +1063,6 @@ function StatPieChart({ data, dataKey, title }: { data: ProjectData[], dataKey: 
   const total = stats.reduce((sum, item) => sum + item.value, 0);
   let currentAngle = 0;
   
-  // Bảng màu mở rộng để tránh trùng khi có nhiều Điện lực
   const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e', '#84cc16', '#0ea5e9', '#d946ef'];
 
   const conicString = stats.map((item, i) => {
@@ -1076,39 +1073,41 @@ function StatPieChart({ data, dataKey, title }: { data: ProjectData[], dataKey: 
   }).join(', ');
 
   return (
-    <div className="bg-white p-5 rounded-[32px] shadow-sm border border-gray-100 flex flex-col gap-4 hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-2">
-        <div className="bg-primary/10 p-1.5 rounded-lg text-primary">
-          <PieChart size={16} />
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-8 w-full"
+    >
+      <div className="flex flex-col gap-1 md:w-1/4">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="bg-purple-100 p-1.5 rounded-lg text-purple-600">
+            <PieChart size={18} />
+          </div>
+          <h3 className="text-lg font-serif font-bold text-gray-800">{title}</h3>
         </div>
-        <div>
-          <h3 className="text-sm font-serif font-bold text-gray-800">{title}</h3>
-          <p className="text-[10px] text-gray-400">Tổng: {total} công trình</p>
-        </div>
+        <p className="text-xs text-gray-500">Tỉ lệ phân bổ dựa trên {total} công trình đang hiển thị</p>
       </div>
       
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row items-center gap-8 w-full justify-around md:justify-start">
         <div 
           style={{ background: `conic-gradient(${conicString})` }} 
-          className="w-20 h-20 rounded-full shadow-sm shrink-0 border-4 border-white transition-all hover:scale-105"
+          className="w-28 h-28 md:w-32 md:h-32 rounded-full shadow-md shrink-0 border-4 border-white transition-all hover:scale-105"
         />
-        <div className="flex flex-col gap-2 w-full max-h-[100px] overflow-y-auto pr-1">
+        {/* Lưới danh sách chú thích trải đều 3 cột cho thoáng */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm w-full max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
           {stats.map((item, i) => (
-            <div key={item.name} className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 overflow-hidden">
-                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colors[i % colors.length] }} />
-                <span className="font-medium text-gray-600 text-[11px] truncate max-w-[120px]" title={item.name}>
-                  {item.name}
-                </span>
-              </div>
-              <span className="text-gray-400 font-mono text-[9px] shrink-0">
-                {item.value} ({((item.value / total) * 100).toFixed(0)}%)
+            <div key={item.name} className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: colors[i % colors.length] }} />
+              <span className="font-medium text-gray-700 truncate" title={item.name}>
+                {item.name}
               </span>
+              <span className="text-gray-400 font-mono text-xs shrink-0">({((item.value / total) * 100).toFixed(1)}%)</span>
             </div>
           ))}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
