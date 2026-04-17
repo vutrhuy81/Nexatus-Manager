@@ -695,6 +695,7 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     } catch (error) { console.error(error); }
   };
 
+  // XỬ LÝ HÀNH ĐỘNG EXPORT SỰ CỐ
   const handleExportIncidents = () => {
     const url = currentUser.role === 'AGENCY' 
       ? `/api/export/incidents?agency=${encodeURIComponent(currentUser.agencyName || '')}`
@@ -717,6 +718,7 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
               </div>
             </div>
             <div className="flex gap-2">
+              {/* NÚT EXPORT SỰ CỐ */}
               <button onClick={handleExportIncidents} className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 flex items-center gap-2 transition-colors">
                 <Download size={16} /> Export
               </button>
@@ -1289,9 +1291,21 @@ function LogModal({ user, onClose }: { user: User; onClose: () => void }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const isOk = status?.toLowerCase().includes('ok') || status?.toLowerCase().includes('có');
+  const lowerStatus = status?.toLowerCase() || '';
+  const isOk = lowerStatus.includes('ok') || lowerStatus.includes('có');
+  const isNok = lowerStatus.includes('nok') || lowerStatus.includes('không');
+
+  // Mặc định là màu cam (cảnh báo/đang chờ)
+  let colorClass = 'bg-orange-50 text-orange-600';
+  
+  if (isOk) {
+    colorClass = 'bg-green-50 text-green-600';
+  } else if (isNok) {
+    colorClass = 'bg-red-50 text-red-600'; // Hiển thị màu đỏ cho giá trị NOK
+  }
+
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${isOk ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
+    <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${colorClass}`}>
       {isOk ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
       <span>{status || 'N/A'}</span>
     </div>
