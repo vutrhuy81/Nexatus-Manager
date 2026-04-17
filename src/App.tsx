@@ -1291,22 +1291,23 @@ function LogModal({ user, onClose }: { user: User; onClose: () => void }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const lowerStatus = status?.toLowerCase() || '';
-  const isOk = lowerStatus.includes('ok') || lowerStatus.includes('có');
-  const isNok = lowerStatus.includes('nok') || lowerStatus.includes('không');
-
-  // Mặc định là màu cam (cảnh báo/đang chờ)
-  let colorClass = 'bg-orange-50 text-orange-600';
+  // Chuẩn hóa chuỗi: viết thường và cắt bỏ khoảng trắng thừa
+  const lowerStatus = status?.toLowerCase().trim() || '';
   
-  if (isOk) {
+  let colorClass = 'bg-orange-50 text-orange-600'; // Màu cam mặc định
+  let isSuccessIcon = false;
+
+  // KIỂM TRA CHÍNH XÁC TUYỆT ĐỐI
+  if (lowerStatus === 'nok' || lowerStatus === 'không') {
+    colorClass = 'bg-red-50 text-red-600';
+  } else if (lowerStatus === 'ok' || lowerStatus === 'có') {
     colorClass = 'bg-green-50 text-green-600';
-  } else if (isNok) {
-    colorClass = 'bg-red-50 text-red-600'; // Hiển thị màu đỏ cho giá trị NOK
+    isSuccessIcon = true;
   }
 
   return (
     <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${colorClass}`}>
-      {isOk ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
+      {isSuccessIcon ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
       <span>{status || 'N/A'}</span>
     </div>
   );
