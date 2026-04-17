@@ -33,7 +33,7 @@ export default function App() {
   });
 
   const [data, setData] = useState<ProjectData[]>([]);
-  const [incidentsData, setIncidentsData] = useState<IncidentData[]>([]); // STATE LƯU DỮ LIỆU SỰ CỐ CHO DASHBOARD
+  const [incidentsData, setIncidentsData] = useState<IncidentData[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -41,8 +41,8 @@ export default function App() {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
   
-  // STATE: Bổ sung thêm tùy chọn 'incidentAgency'
-  const [activeChart, setActiveChart] = useState<'agency' | 'corporation' | 'powerCompany' | 'incidentAgency'>('agency');
+  // STATE: Bổ sung thêm tùy chọn 'incidentResult'
+  const [activeChart, setActiveChart] = useState<'agency' | 'corporation' | 'powerCompany' | 'incidentAgency' | 'incidentResult'>('agency');
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,7 +56,6 @@ export default function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  // Lấy dữ liệu công trình và sự cố khi đã có user
   useEffect(() => {
     if (user) {
       fetchData();
@@ -106,7 +105,6 @@ export default function App() {
     }
   };
 
-  // HÀM LẤY DỮ LIỆU SỰ CỐ CHO BIỂU ĐỒ DASHBOARD
   const fetchIncidentsData = async () => {
     try {
       const res = await fetch('/api/incidents', { headers: { 'x-user-role': user?.role || '' } });
@@ -471,7 +469,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ - BỔ SUNG RADIO SỰ CỐ */}
+        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ - BỔ SUNG RADIO KẾT QUẢ SỰ CỐ */}
         <div className="bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center gap-6 mb-6">
           <div className="text-sm font-bold text-gray-700 flex items-center gap-2">
             <PieChart size={16} className="text-primary" />
@@ -518,6 +516,16 @@ export default function App() {
               />
               <span className="text-sm font-medium text-gray-600 group-hover:text-orange-500 transition-colors">Sự cố theo Đại lý</span>
             </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input 
+                type="radio" 
+                name="chartType"
+                checked={activeChart === 'incidentResult'} 
+                onChange={() => setActiveChart('incidentResult')} 
+                className="w-4 h-4 text-orange-500 bg-gray-100 border-gray-300 focus:ring-orange-500 cursor-pointer" 
+              />
+              <span className="text-sm font-medium text-gray-600 group-hover:text-orange-500 transition-colors">Kết quả xử lý sự cố</span>
+            </label>
           </div>
         </div>
 
@@ -528,6 +536,7 @@ export default function App() {
             {activeChart === 'corporation' && <StatPieChart key="corp" data={filteredData} dataKey="Tổng công ty" title="Thống Kê Tổng Công Ty" />}
             {activeChart === 'powerCompany' && <StatPieChart key="pc" data={filteredData} dataKey="Công ty điện lực" title="Thống Kê Điện Lực Trực Thuộc" />}
             {activeChart === 'incidentAgency' && <StatPieChart key="incAgency" data={incidentsData} dataKey="Tên đại lý" title="Thống Kê Sự Cố Theo Đại Lý" unit="sự cố" />}
+            {activeChart === 'incidentResult' && <StatPieChart key="incResult" data={incidentsData} dataKey="Kết quả xử lý" title="Thống Kê Sự Cố Theo Kết Quả" unit="sự cố" />}
           </AnimatePresence>
         </div>
 
