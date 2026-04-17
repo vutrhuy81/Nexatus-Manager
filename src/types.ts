@@ -4,11 +4,12 @@ export interface User {
   username: string;
   role: UserRole;
   agencyName?: string;
-  email?: string; // BỔ SUNG TRƯỜNG EMAIL
+  email?: string; 
 }
 
 export interface ProjectData {
   STT: string;
+  'Tổng công ty': string;
   'Công ty điện lực': string;
   'Đơn vị điện lực': string;
   'Mã TBA': string;
@@ -56,10 +57,47 @@ export interface IncidentData {
   'Nguyên nhân và giải pháp': string;
 }
 
+// === DATA DICTIONARIES ===
 export const AGENCIES = ['Hoà Phát', 'Damitech', 'Việt Long', 'AME', 'INewSolar', 'Vitech'];
 export const LISTENS = ['116.212.47.2 (NPC)', '103.78.7.6 (CPC2/SPC)', '116.105.225.236 (CPC1)', '202.60.107.187 (HCMC)'];
 export const LOCALIDS = ['Sophos_EVN (NPC)', '%any (HCMC)', 'Null (CPC/SPC)'];
 export const LOCALSUBS = ['10.21.10.64/27 (NPC)', '192.168.108.0/28 (CPC2/SPC)', '10.112.191.0/30 (CPC1)', '10.137.101.132/32 (HCMC)'];
 export const NSXIVTS = ['HUAWEI', 'SUNGROW', 'SMA', 'SOLIS', 'DEYE', 'FRONIUS', 'ABB', 'GOOGWE', 'GROWATT', 'KEHUA', 'AUXSOL', 'SAJ'];
-export const LOGGERS = ['FRONIUS', 'ABB_PVS', 'ABB_TRIO20', 'GOOGWE', 'GROWATT', 'HUAWEI', 'KEHUA', 'SMA', 'SOLIS', 'SUNGROW', 'DEYE_SUN_G03', 'SMART_HUAWEI', 'SMART_SUNGROW', 'SMART_SAJ_C1', 'SMART_SAJ_SEC', 'SMART_SOLIS_S3', 'SMART_AUXSOL', 'SMART_SMA', 'SMARTLOGGER GROWATT'];
-export const METERS = ['DT03MRF', 'SMARTLOGGER HUAWEI', 'ACREL DTSD1352', 'JANITZA UMG604 SUM', 'JANITZA UMG604 SINGLE', 'SMARTLOGGER SAJ C1', 'SMARTLOGGER SAJ SEC', 'SCHNEIDER PM51XX 53XX', 'EASTRON SDM630MCT', 'EASTRON SDM630MCT', 'SMARTLOGGER AUXSOL', 'SMARTLOGGER SMA', 'SMARTLOGGER GROWATT'];
+export const LOGGERS = ['FRONIUS', 'ABB_PVS', 'ABB_TRIO20', 'GOOGWE', 'GROWATT', 'HUAWEI', 'KEHUA', 'SMA', 'SOLIS', 'SUNGROW', 'DEYE_SUN_G03', 'SMART_HUAWEI', 'SMART_SUNGROW', 'SMART_SAJ_C1', 'SMART_SAJ_SEC', 'SMART_SOLIS_S3', 'SMART_AUXSOL', 'SMART_SMA'];
+export const METERS = ['DT03MRF', 'SMARTLOGGER HUAWEI', 'ACREL DTSD1352', 'JANITZA UMG604 SUM', 'JANITZA UMG604 SINGLE', 'SMARTLOGGER SAJ C1', 'SMARTLOGGER SAJ SEC', 'SCHNEIDER PM51XX 53XX', 'EASTRON SDM630MCT', 'EASTRON SDM630MCT', 'SMARTLOGGER AUXSOL', 'SMARTLOGGER SMA'];
+
+export const POWER_COMPANIES: Record<string, string[]> = {
+  'EVNNPC': [
+    'Công ty Điện lực Bắc Ninh', 'Công ty Điện lực Cao Bằng', 'Công ty Điện lực Điện Biên',
+    'Công ty Điện lực Hà Tĩnh', 'Công ty Điện lực Hải Phòng', 'Công ty Điện lực Hưng Yên',
+    'Công ty Điện lực Lai Châu', 'Công ty Điện lực Lạng Sơn', 'Công ty Điện lực Lào Cai',
+    'Công ty Điện lực Ninh Bình', 'Công ty Điện lực Nghệ An', 'Công ty Điện lực Phú Thọ',
+    'Công ty Điện lực Quảng Ninh', 'Công ty Điện lực Sơn La', 'Công ty Điện lực Tuyên Quang',
+    'Công ty Điện lực Thái Nguyên', 'Công ty Điện lực Thanh Hóa'
+  ],
+  'EVNCPC': [
+    'Công ty Điện lực Quảng Trị', 'Công ty Điện lực Thừa Thiên Huế', 'Công ty Điện lực Đà Nẵng',
+    'Công ty Điện lực Quảng Ngãi', 'Công ty Điện lực Gia Lai', 'Công ty Điện lực Đắk Lắk',
+    'Công ty Điện lực Khánh Hòa', 'Công ty Cổ phần Điện lực Khánh Hòa'
+  ],
+  'EVNSPC': [
+    'Công ty Điện lực An Giang', 'Công ty Điện lực Cà Mau', 'Công ty Điện lực Đồng Tháp',
+    'Công ty Điện lực Vĩnh Long', 'Công ty Điện lực TP. Cần Thơ', 'Công ty Điện lực Tây Ninh',
+    'Công ty Điện lực Đồng Nai', 'Công ty Điện lực Lâm Đồng'
+  ],
+  'EVNHANOI': [
+    'Công ty Điện lực Ba Đình', 'Công ty Điện lực Hoàn Kiếm', 'Công ty Điện lực Từ Liêm',
+    'Công ty Điện lực Hà Đông', 'Công ty Điện lực Thanh Trì', 'Công ty Điện lực Gia Lâm',
+    'Công ty Điện lực Đông Anh', 'Công ty Điện lực Sóc Sơn', 'Công ty Điện lực Sơn Tây',
+    'Công ty Điện lực Thạch Thất', 'Công ty Điện lực Thường Tín', 'Công ty Điện lực Ứng Hòa'
+  ],
+  'EVNHCMC': [
+    'Công ty Điện lực Sài Gòn', 'Công ty Điện lực Tân Thuận', 'Công ty Điện lực Gia Định',
+    'Công ty Điện lực Chợ Lớn', 'Công ty Điện lực Thủ Đức', 'Công ty Điện lực Bình Chánh',
+    'Công ty Điện lực Củ Chi', 'Công ty Điện lực Hóc Môn', 'Công ty Điện lực An Phú Đông',
+    'Công ty Điện lực Bình Phú', 'Công ty Điện lực Bình Dương', 'Công ty Điện lực Bến Cát',
+    'Công ty Điện lực Thuận An', 'Công ty Điện lực Đất Đỏ', 'Công ty Điện lực Vũng Tàu'
+  ]
+};
+
+export const CORPORATIONS = Object.keys(POWER_COMPANIES);
