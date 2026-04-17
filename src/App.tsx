@@ -27,7 +27,12 @@ import {
 import { User, ProjectData, IncidentData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS } from './types';
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
+  // 1. LẤY THÔNG TIN TỪ LOCAL STORAGE KHI LOAD TRANG ĐỂ CHỐNG F5 MẤT ĐĂNG NHẬP
+  const [user, setUser] = useState<User | null>(() => {
+    const savedUser = localStorage.getItem('nexatus_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+
   const [data, setData] = useState<ProjectData[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,10 +53,47 @@ export default function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
+  // Lấy dữ liệu công trình khi đã có user
   useEffect(() => {
     if (user) {
       fetchData();
     }
+  }, [user]);
+
+  // 2. TÍNH NĂNG TỰ ĐỘNG ĐĂNG XUẤT SAU 5 PHÚT KHÔNG HOẠT ĐỘNG
+  useEffect(() => {
+    if (!user) return; // Không làm gì nếu chưa đăng nhập
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    // Hàm thực hiện đăng xuất
+    const performLogout = () => {
+      setUser(null);
+      setUsername('');
+      setPassword('');
+      localStorage.removeItem('nexatus_user'); // Xóa bộ nhớ
+      alert("Phiên đăng nhập đã hết hạn do không có hoạt động trong 5 phút. Vui lòng đăng nhập lại.");
+    };
+
+    // Hàm reset lại thời gian 5 phút
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      // 5 phút = 5 * 60 * 1000 = 300,000 milliseconds
+      timeoutId = setTimeout(performLogout, 300000); 
+    };
+
+    // Lắng nghe các thao tác của người dùng trên trang
+    const events = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+
+    // Khởi động bộ đếm lần đầu
+    resetTimer();
+
+    // Dọn dẹp sự kiện khi component unmount
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
   }, [user]);
 
   const fetchData = async () => {
@@ -78,6 +120,8 @@ export default function App() {
       const data = await res.json();
       if (data.success) {
         setUser(data.user);
+        // 3. LƯU THÔNG TIN VÀO LOCAL STORAGE KHI ĐĂNG NHẬP THÀNH CÔNG
+        localStorage.setItem('nexatus_user', JSON.stringify(data.user));
         setLoginError('');
       } else {
         setLoginError(data.message || 'Sai tên đăng nhập hoặc mật khẩu');
@@ -91,6 +135,8 @@ export default function App() {
     setUser(null);
     setUsername('');
     setPassword('');
+    // 4. XÓA LOCAL STORAGE KHI ĐĂNG XUẤT CHỦ ĐỘNG
+    localStorage.removeItem('nexatus_user');
   };
 
   const handleExportData = () => {
@@ -649,7 +695,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     } catch (error) { console.error(error); }
   };
 
-  // XỬ LÝ HÀNH ĐỘNG EXPORT SỰ CỐ
   const handleExportIncidents = () => {
     const url = currentUser.role === 'AGENCY' 
       ? `/api/export/incidents?agency=${encodeURIComponent(currentUser.agencyName || '')}`
@@ -672,7 +717,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
               </div>
             </div>
             <div className="flex gap-2">
-              {/* NÚT EXPORT SỰ CỐ */}
               <button onClick={handleExportIncidents} className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 flex items-center gap-2 transition-colors">
                 <Download size={16} /> Export
               </button>
