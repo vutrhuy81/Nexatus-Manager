@@ -497,8 +497,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* HỆ THỐNG BIỂU ĐỒ TÙY CHỈNH */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8`}>
+        {/* HỆ THỐNG BIỂU ĐỒ TÙY CHỈNH - 1 CỘT */}
+        <div className="flex flex-col gap-6 mb-8">
           {activeCharts.agency && <StatPieChart data={filteredData} dataKey="Tên đại lý" title="Thống Kê Đại Lý" />}
           {activeCharts.corporation && <StatPieChart data={filteredData} dataKey="Tổng công ty" title="Thống Kê Tổng Công Ty" />}
           {activeCharts.powerCompany && <StatPieChart data={filteredData} dataKey="Công ty điện lực" title="Thống Kê Điện Lực" />}
