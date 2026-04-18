@@ -41,8 +41,8 @@ export default function App() {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
   
-  // STATE: Bổ sung thêm tùy chọn 'incidentResult'
-  const [activeChart, setActiveChart] = useState<'agency' | 'corporation' | 'powerCompany' | 'incidentAgency' | 'incidentResult'>('agency');
+  // STATE: Bổ sung thêm tùy chọn 'inverter'
+  const [activeChart, setActiveChart] = useState<'agency' | 'corporation' | 'powerCompany' | 'incidentAgency' | 'incidentResult' | 'inverter'>('agency');
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -469,7 +469,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ - BỔ SUNG RADIO KẾT QUẢ SỰ CỐ */}
+        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ */}
         <div className="bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center gap-6 mb-6">
           <div className="text-sm font-bold text-gray-700 flex items-center gap-2">
             <PieChart size={16} className="text-primary" />
@@ -510,6 +510,16 @@ export default function App() {
               <input 
                 type="radio" 
                 name="chartType"
+                checked={activeChart === 'inverter'} 
+                onChange={() => setActiveChart('inverter')} 
+                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" 
+              />
+              <span className="text-sm font-medium text-gray-600 group-hover:text-primary transition-colors">NSX Inverter</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input 
+                type="radio" 
+                name="chartType"
                 checked={activeChart === 'incidentAgency'} 
                 onChange={() => setActiveChart('incidentAgency')} 
                 className="w-4 h-4 text-orange-500 bg-gray-100 border-gray-300 focus:ring-orange-500 cursor-pointer" 
@@ -535,6 +545,7 @@ export default function App() {
             {activeChart === 'agency' && <StatPieChart key="agency" data={filteredData} dataKey="Tên đại lý" title="Thống Kê Đại Lý" />}
             {activeChart === 'corporation' && <StatPieChart key="corp" data={filteredData} dataKey="Tổng công ty" title="Thống Kê Tổng Công Ty" />}
             {activeChart === 'powerCompany' && <StatPieChart key="pc" data={filteredData} dataKey="Công ty điện lực" title="Thống Kê Điện Lực Trực Thuộc" />}
+            {activeChart === 'inverter' && <StatPieChart key="inverter" data={filteredData} dataKey="Nhà sản xuất Inverter" title="Thống Kê Nhà Sản Xuất Inverter" />}
             {activeChart === 'incidentAgency' && <StatPieChart key="incAgency" data={incidentsData} dataKey="Tên đại lý" title="Thống Kê Sự Cố Theo Đại Lý" unit="sự cố" />}
             {activeChart === 'incidentResult' && <StatPieChart key="incResult" data={incidentsData} dataKey="Kết quả xử lý" title="Thống Kê Sự Cố Theo Kết Quả" unit="sự cố" />}
           </AnimatePresence>
@@ -1091,12 +1102,17 @@ function StatPieChart({ data, dataKey, title, unit = "công trình" }: { data: a
   const stats = useMemo(() => {
     const counts: Record<string, number> = {};
     data.forEach(p => {
-      const val = p[dataKey] as string;
-      if (val && val.trim() !== '') counts[val] = (counts[val] || 0) + 1;
+      let val = p[dataKey] as string;
+      val = (val && val.trim() !== '') ? val.trim() : 'Chưa xác định';
+      counts[val] = (counts[val] || 0) + 1;
     });
     return Object.entries(counts)
       .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value); 
+      .sort((a, b) => {
+        if (a.name === 'Chưa xác định') return 1;
+        if (b.name === 'Chưa xác định') return -1;
+        return b.value - a.value;
+      }); 
   }, [data, dataKey]);
 
   if (stats.length === 0) return null;
@@ -1104,11 +1120,12 @@ function StatPieChart({ data, dataKey, title, unit = "công trình" }: { data: a
   const total = stats.reduce((sum, item) => sum + item.value, 0);
   let currentAngle = 0;
   
-  const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e', '#84cc16', '#0ea5e9', '#d946ef'];
+  const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#6366f1', '#14b8a6', '#f43f5e', '#84cc16', '#0ea5e9', '#d946ef', '#9ca3af'];
 
   const conicString = stats.map((item, i) => {
+    const color = item.name === 'Chưa xác định' ? '#e5e7eb' : colors[i % (colors.length - 1)];
     const angle = (item.value / total) * 360;
-    const str = `${colors[i % colors.length]} ${currentAngle}deg ${currentAngle + angle}deg`;
+    const str = `${color} ${currentAngle}deg ${currentAngle + angle}deg`;
     currentAngle += angle;
     return str;
   }).join(', ');
@@ -1139,8 +1156,11 @@ function StatPieChart({ data, dataKey, title, unit = "công trình" }: { data: a
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3 text-sm w-full max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
           {stats.map((item, i) => (
             <div key={item.name} className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: colors[i % colors.length] }} />
-              <span className="font-medium text-gray-700 truncate" title={item.name}>
+              <div 
+                className="w-3 h-3 rounded-full shrink-0 shadow-sm" 
+                style={{ backgroundColor: item.name === 'Chưa xác định' ? '#9ca3af' : colors[i % (colors.length - 1)] }} 
+              />
+              <span className={`font-medium truncate ${item.name === 'Chưa xác định' ? 'text-gray-400 italic' : 'text-gray-700'}`} title={item.name}>
                 {item.name}
               </span>
               <span className="text-gray-400 font-mono text-xs shrink-0">({((item.value / total) * 100).toFixed(1)}%)</span>
