@@ -41,7 +41,6 @@ export default function App() {
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
   
-  // STATE: Bổ sung thêm tùy chọn 'inverter'
   const [activeChart, setActiveChart] = useState<'agency' | 'corporation' | 'powerCompany' | 'incidentAgency' | 'incidentResult' | 'inverter'>('agency');
 
   // Modals state
@@ -469,7 +468,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ */}
+        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ - DẠNG RADIO CHỌN 1 */}
         <div className="bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center gap-6 mb-6">
           <div className="text-sm font-bold text-gray-700 flex items-center gap-2">
             <PieChart size={16} className="text-primary" />
@@ -539,7 +538,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* KHU VỰC HIỂN THỊ BIỂU ĐỒ TÙY CHỌN CHIẾM FULL CHIỀU RỘNG */}
+        {/* KHU VỰC HIỂN THỊ 1 BIỂU ĐỒ DUY NHẤT CHIẾM FULL CHIỀU RỘNG */}
         <div className="mb-8 min-h-[160px]">
           <AnimatePresence mode="wait">
             {activeChart === 'agency' && <StatPieChart key="agency" data={filteredData} dataKey="Tên đại lý" title="Thống Kê Đại Lý" />}
@@ -731,7 +730,7 @@ export default function App() {
             projects={data}
             onClose={() => {
               setIsIncidentListOpen(false);
-              fetchIncidentsData(); // Refresh lại dữ liệu biểu đồ Sự cố khi đóng Modal
+              fetchIncidentsData(); 
             }}
           />
         )}
@@ -1163,7 +1162,10 @@ function StatPieChart({ data, dataKey, title, unit = "công trình" }: { data: a
               <span className={`font-medium truncate ${item.name === 'Chưa xác định' ? 'text-gray-400 italic' : 'text-gray-700'}`} title={item.name}>
                 {item.name}
               </span>
-              <span className="text-gray-400 font-mono text-xs shrink-0">({((item.value / total) * 100).toFixed(1)}%)</span>
+              {/* BẢN VÁ LỖI MỚI: Hiển thị thêm số lượng / tổng số */}
+              <span className="text-gray-500 font-mono text-[10px] shrink-0 whitespace-nowrap">
+                ({item.value}/{total} ~ {((item.value / total) * 100).toFixed(1)}%)
+              </span>
             </div>
           ))}
         </div>
