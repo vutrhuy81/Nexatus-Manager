@@ -43,7 +43,6 @@ export default function App() {
   
   const [activeChart, setActiveChart] = useState<'agency' | 'corporation' | 'powerCompany' | 'incidentAgency' | 'incidentResult' | 'inverter'>('agency');
 
-  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false); 
@@ -740,7 +739,7 @@ export default function App() {
 }
 
 // ============================================================================
-// COMPONENT: QUẢN LÝ SỰ CỐ
+// COMPONENT: QUẢN LÝ SỰ CỐ (Đã thêm Filter và Sort)
 // ============================================================================
 function IncidentListModal({ currentUser, projects, onClose }: { currentUser: User; projects: ProjectData[]; onClose: () => void }) {
   const [incidents, setIncidents] = useState<IncidentData[]>([]);
@@ -748,6 +747,11 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
   const [editingIncident, setEditingIncident] = useState<IncidentData | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(''); 
+  
+  // STATE MỚI: Dành riêng cho bảng Sự cố
+  const [showFilters, setShowFilters] = useState(false);
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
 
   useEffect(() => {
     fetchIncidents();
@@ -793,14 +797,73 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     window.open(url, '_blank');
   };
 
-  const filteredIncidents = useMemo(() => {
-    if (!searchTerm) return incidents;
-    const lower = searchTerm.toLowerCase();
-    return incidents.filter(inc => 
-      (inc['Công trình'] || '').toLowerCase().includes(lower) ||
-      (inc['Mô tả sự cố'] || '').toLowerCase().includes(lower)
-    );
-  }, [incidents, searchTerm]);
+  // LOGIC SẮP XẾP SỰ CỐ
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' | null = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    else if (sortConfig.key === key && sortConfig.direction === 'desc') direction = null;
+    setSortConfig({ key, direction });
+  };
+
+  // LOGIC LỌC CỘT SỰ CỐ
+  const handleColumnFilterChange = (key: string, value: string) => {
+    setColumnFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const processedIncidents = useMemo(() => {
+    let result = incidents;
+
+    // 1. Tìm kiếm tổng quát
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter(inc => 
+        (inc['Công trình'] || '').toLowerCase().includes(lowerSearch) ||
+        (inc['Mô tả sự cố'] || '').toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    // 2. Lọc theo từng cột
+    Object.keys(columnFilters).forEach(key => {
+      const filterValue = columnFilters[key];
+      if (filterValue) {
+        const lowerFilter = filterValue.toLowerCase();
+        if (key === 'Ngày giờ phản ánh') {
+          // Định dạng lại ngày giờ thành string giống trên UI trước khi search
+          result = result.filter(inc => new Date(inc['Ngày giờ phản ánh']).toLocaleString('vi-VN').toLowerCase().includes(lowerFilter));
+        } else {
+          result = result.filter(inc => String(inc[key as keyof IncidentData] || '').toLowerCase().includes(lowerFilter));
+        }
+      }
+    });
+
+    // 3. Sắp xếp
+    if (sortConfig.key && sortConfig.direction) {
+      result = [...result].sort((a: any, b: any) => {
+        let valA = a[sortConfig.key!];
+        let valB = b[sortConfig.key!];
+
+        // Xử lý riêng khi click sort cột ngày tháng
+        if (sortConfig.key === 'Ngày giờ phản ánh') {
+          const dateA = new Date(valA).getTime();
+          const dateB = new Date(valB).getTime();
+          return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+        }
+
+        valA = String(valA || '');
+        valB = String(valB || '');
+        return sortConfig.direction === 'asc' 
+          ? valA.localeCompare(valB) 
+          : valB.localeCompare(valA);
+      });
+    }
+
+    return result;
+  }, [incidents, searchTerm, columnFilters, sortConfig]);
+
+  const IncidentSortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig.key !== columnKey || !sortConfig.direction) return <ArrowUpDown size={12} className="opacity-30" />;
+    return sortConfig.direction === 'asc' ? <ChevronUp size={12} className="text-orange-600" /> : <ChevronDown size={12} className="text-orange-600" />;
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -829,6 +892,17 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
                 />
               </div>
 
+              {/* Nút bật/tắt bộ lọc cột cho Sự cố */}
+              <button 
+                onClick={() => setShowFilters(!showFilters)}
+                title="Bật/tắt bộ lọc từng cột"
+                className={`flex items-center justify-center p-2 rounded-xl border transition-all ${
+                  showFilters ? 'bg-orange-600 text-white border-orange-600 shadow-md' : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50 shadow-sm'
+                }`}
+              >
+                <Filter size={18} />
+              </button>
+
               <button onClick={handleExportIncidents} className="px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 flex items-center gap-2 transition-colors">
                 <Download size={16} /> Export
               </button>
@@ -844,17 +918,42 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
                 <tr>
-                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Ngày Giờ</th>
-                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Công Trình</th>
-                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Mô Tả</th>
-                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Kết Quả</th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-orange-600 transition-colors" onClick={() => handleSort('Ngày giờ phản ánh')}>
+                    <div className="flex items-center gap-1">Ngày Giờ <IncidentSortIcon columnKey="Ngày giờ phản ánh" /></div>
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-orange-600 transition-colors" onClick={() => handleSort('Công trình')}>
+                    <div className="flex items-center gap-1">Công Trình <IncidentSortIcon columnKey="Công trình" /></div>
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-orange-600 transition-colors" onClick={() => handleSort('Mô tả sự cố')}>
+                    <div className="flex items-center gap-1">Mô Tả <IncidentSortIcon columnKey="Mô tả sự cố" /></div>
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500 cursor-pointer hover:text-orange-600 transition-colors" onClick={() => handleSort('Kết quả xử lý')}>
+                    <div className="flex items-center gap-1">Kết Quả <IncidentSortIcon columnKey="Kết quả xử lý" /></div>
+                  </th>
                   <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-gray-500">Thao Tác</th>
                 </tr>
+                {/* HÀNG NHẬP TEXT BỘ LỌC */}
+                <AnimatePresence>
+                  {showFilters && (
+                    <motion.tr 
+                      initial={{ height: 0, opacity: 0 }} 
+                      animate={{ height: 'auto', opacity: 1 }} 
+                      exit={{ height: 0, opacity: 0 }} 
+                      className="bg-orange-50/50 border-b border-gray-100"
+                    >
+                      <td className="px-2 py-2"><input type="text" placeholder="Lọc ngày..." value={columnFilters['Ngày giờ phản ánh'] || ''} onChange={(e) => handleColumnFilterChange('Ngày giờ phản ánh', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-orange-500" /></td>
+                      <td className="px-2 py-2"><input type="text" placeholder="Lọc công trình..." value={columnFilters['Công trình'] || ''} onChange={(e) => handleColumnFilterChange('Công trình', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-orange-500" /></td>
+                      <td className="px-2 py-2"><input type="text" placeholder="Lọc mô tả..." value={columnFilters['Mô tả sự cố'] || ''} onChange={(e) => handleColumnFilterChange('Mô tả sự cố', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-orange-500" /></td>
+                      <td className="px-2 py-2"><input type="text" placeholder="Ok/Nok..." value={columnFilters['Kết quả xử lý'] || ''} onChange={(e) => handleColumnFilterChange('Kết quả xử lý', e.target.value)} className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:border-orange-500" /></td>
+                      <td></td>
+                    </motion.tr>
+                  )}
+                </AnimatePresence>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? <tr><td colSpan={5} className="p-4 text-center text-gray-400">Đang tải...</td></tr> : 
-                 filteredIncidents.length === 0 ? <tr><td colSpan={5} className="p-4 text-center text-gray-400">Không có sự cố nào</td></tr> :
-                 filteredIncidents.map(inc => (
+                 processedIncidents.length === 0 ? <tr><td colSpan={5} className="p-4 text-center text-gray-400">Không có sự cố nào</td></tr> :
+                 processedIncidents.map(inc => (
                   <tr key={inc._id} className="hover:bg-gray-50/50">
                     <td className="px-4 py-3 text-xs text-gray-500 font-mono">{new Date(inc['Ngày giờ phản ánh']).toLocaleString('vi-VN')}</td>
                     <td className="px-4 py-3 font-medium text-sm">{inc['Công trình']}</td>
@@ -1162,7 +1261,6 @@ function StatPieChart({ data, dataKey, title, unit = "công trình" }: { data: a
               <span className={`font-medium truncate ${item.name === 'Chưa xác định' ? 'text-gray-400 italic' : 'text-gray-700'}`} title={item.name}>
                 {item.name}
               </span>
-              {/* BẢN VÁ LỖI MỚI: Hiển thị thêm số lượng / tổng số */}
               <span className="text-gray-500 font-mono text-[10px] shrink-0 whitespace-nowrap">
                 ({item.value}/{total} ~ {((item.value / total) * 100).toFixed(1)}%)
               </span>
