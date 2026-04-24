@@ -57,6 +57,17 @@ export interface IncidentData {
   'Nguyên nhân và giải pháp': string;
 }
 
+export interface WarrantyData {
+  _id?: string;
+  'Tên đại lý': string;
+  'Công trình': string;
+  'Serial number cũ': string;
+  'Serial number mới': string;
+  'Ngày đại lý gửi KCS': string;
+  'Ngày KCS gửi đại lý': string;
+  'Trạng thái': string;
+}
+
 // === DATA DICTIONARIES ===
 export const AGENCIES = ['Hoà Phát', 'Damitech', 'Việt Long', 'AME', 'INewSolar', 'Vitech'];
 export const LISTENS = ['116.212.47.2 (NPC)', '103.78.7.6 (CPC2/SPC)', '116.105.225.236 (CPC1)', '202.60.107.187 (HCMC)'];
