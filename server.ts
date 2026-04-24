@@ -5,6 +5,7 @@ import { stringify } from "csv-stringify/sync";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import mongoose from "mongoose";
+import { Types } from "mongoose"; 
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 
@@ -72,6 +73,18 @@ const incidentSchema = new mongoose.Schema({
   'Nguyên nhân và giải pháp': String
 }, { versionKey: false });
 const Incident = mongoose.model("Incident", incidentSchema);
+
+// MỚI: SCHEMA BẢO HÀNH 
+const warrantySchema = new mongoose.Schema({
+  'Tên đại lý': String,
+  'Công trình': String,
+  'Serial number cũ': String,
+  'Serial number mới': String,
+  'Ngày đại lý gửi KCS': String,
+  'Ngày KCS gửi đại lý': String,
+  'Trạng thái': { type: String, default: "Đại lý chưa nhận/Lắp đặt" }
+}, { versionKey: false });
+const Warranty = mongoose.model("Warranty", warrantySchema);
 
 async function seedAdminUser() {
   try {
@@ -191,6 +204,46 @@ async function startServer() {
       await UserDB.findByIdAndDelete(req.params.id);
       res.json({ message: "Xóa user thành công" });
     } catch (error) { res.status(500).json({ error: "Failed to delete user" }); }
+  });
+
+  // --- API BẢO HÀNH (MỚI) --- 
+  app.get("/api/warranties", async (req, res) => {
+    try {
+      const records = await Warranty.find({}).lean();
+      res.json(records);
+    } catch (error) { 
+	res.status(500).json({ error: "Failed to read warranties" }); 
+	}
+  });
+
+  app.post("/api/warranties", async (req, res) => {
+    try {
+      const { data: recordData, user, action, details } = req.body;
+      let savedRecord;
+      if (recordData._id) {
+        const { _id, ...updateFields } = recordData;
+        savedRecord = await Warranty.findByIdAndUpdate(_id, updateFields, { new: true });
+      } else {
+	    recordData['Ngày giờ phản ánh'] = new Date().toISOString(); 
+        savedRecord = await Warranty.create(recordData);
+      }
+	  
+      if (user && action) await writeLog(user, action, details || "");
+      res.json({ message: "Lưu bảo hành thành công", data: savedRecord });
+    } catch (error) { 
+	res.status(500).json({ error: "Failed to save warranty" }); 
+	}
+  });
+
+  app.delete("/api/warranties/:id", async (req, res) => {
+    try {
+      const { user, action, details } = req.body; 
+      await Warranty.findByIdAndDelete(req.params.id);
+      if (user && action) await writeLog(user, action, details || "");
+      res.json({ message: "Xóa bảo hành thành công" });
+    } catch (error) { 
+	res.status(500).json({ error: "Failed to delete warranty" }); 
+	}
   });
 
   // --- API SỰ CỐ ---
