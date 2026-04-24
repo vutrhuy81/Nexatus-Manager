@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   LayoutDashboard, 
@@ -739,16 +739,16 @@ export default function App() {
 }
 
 // ============================================================================
-// COMPONENT: QUẢN LÝ SỰ CỐ (Đã thêm Filter và Sort)
+// COMPONENT: QUẢN LÝ SỰ CỐ (Đã thêm Search Dropdown)
 // ============================================================================
 function IncidentListModal({ currentUser, projects, onClose }: { currentUser: User; projects: ProjectData[]; onClose: () => void }) {
   const [incidents, setIncidents] = useState<IncidentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingIncident, setEditingIncident] = useState<IncidentData | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(''); 
   
-  // STATE MỚI: Dành riêng cho bảng Sự cố
+  // LOGIC LỌC VÀ SẮP XẾP SỰ CỐ
+  const [searchTerm, setSearchTerm] = useState(''); 
   const [showFilters, setShowFilters] = useState(false);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' | null }>({ key: null, direction: null });
@@ -797,7 +797,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     window.open(url, '_blank');
   };
 
-  // LOGIC SẮP XẾP SỰ CỐ
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' | null = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
@@ -805,7 +804,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
     setSortConfig({ key, direction });
   };
 
-  // LOGIC LỌC CỘT SỰ CỐ
   const handleColumnFilterChange = (key: string, value: string) => {
     setColumnFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -813,7 +811,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
   const processedIncidents = useMemo(() => {
     let result = incidents;
 
-    // 1. Tìm kiếm tổng quát
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
       result = result.filter(inc => 
@@ -822,13 +819,11 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
       );
     }
 
-    // 2. Lọc theo từng cột
     Object.keys(columnFilters).forEach(key => {
       const filterValue = columnFilters[key];
       if (filterValue) {
         const lowerFilter = filterValue.toLowerCase();
         if (key === 'Ngày giờ phản ánh') {
-          // Định dạng lại ngày giờ thành string giống trên UI trước khi search
           result = result.filter(inc => new Date(inc['Ngày giờ phản ánh']).toLocaleString('vi-VN').toLowerCase().includes(lowerFilter));
         } else {
           result = result.filter(inc => String(inc[key as keyof IncidentData] || '').toLowerCase().includes(lowerFilter));
@@ -836,13 +831,11 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
       }
     });
 
-    // 3. Sắp xếp
     if (sortConfig.key && sortConfig.direction) {
       result = [...result].sort((a: any, b: any) => {
         let valA = a[sortConfig.key!];
         let valB = b[sortConfig.key!];
 
-        // Xử lý riêng khi click sort cột ngày tháng
         if (sortConfig.key === 'Ngày giờ phản ánh') {
           const dateA = new Date(valA).getTime();
           const dateB = new Date(valB).getTime();
@@ -851,9 +844,7 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
 
         valA = String(valA || '');
         valB = String(valB || '');
-        return sortConfig.direction === 'asc' 
-          ? valA.localeCompare(valB) 
-          : valB.localeCompare(valA);
+        return sortConfig.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       });
     }
 
@@ -892,7 +883,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
                 />
               </div>
 
-              {/* Nút bật/tắt bộ lọc cột cho Sự cố */}
               <button 
                 onClick={() => setShowFilters(!showFilters)}
                 title="Bật/tắt bộ lọc từng cột"
@@ -932,7 +922,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
                   </th>
                   <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-gray-500">Thao Tác</th>
                 </tr>
-                {/* HÀNG NHẬP TEXT BỘ LỌC */}
                 <AnimatePresence>
                   {showFilters && (
                     <motion.tr 
@@ -1031,6 +1020,29 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
     'Nguyên nhân và giải pháp': ''
   });
 
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProjectDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredAgencyProjects = useMemo(() => {
+    if (!projectSearchTerm) return agencyProjects;
+    const lowerSearch = projectSearchTerm.toLowerCase();
+    return agencyProjects.filter((p: ProjectData) =>
+      p['Tên công trình']?.toLowerCase().includes(lowerSearch) ||
+      p['Mã khách hàng']?.toLowerCase().includes(lowerSearch)
+    );
+  }, [agencyProjects, projectSearchTerm]);
+
   const handleMultipleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'Ảnh' | 'Ảnh kết quả') => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -1065,20 +1077,64 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
         <h2 className="text-lg font-bold">{incident ? 'Cập Nhật Sự Cố' : 'Thêm Phản Ánh Sự Cố'}</h2>
         <button onClick={onClose} className="p-2 text-gray-400 hover:bg-white rounded-full"><X size={20}/></button>
       </div>
-      <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="flex-1 overflow-y-auto p-6 space-y-4">
+      <form onSubmit={(e) => { 
+        e.preventDefault(); 
+        if (!formData['Công trình']) {
+          alert("Vui lòng chọn công trình!");
+          return;
+        }
+        onSave(formData); 
+      }} className="flex-1 overflow-y-auto p-6 space-y-4">
         
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" ref={dropdownRef}>
           <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Công trình *</label>
-          <select 
-            disabled={!isAgency && !!incident} 
-            required 
-            value={formData['Công trình']} 
-            onChange={e => setFormData({...formData, 'Công trình': e.target.value})}
-            className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm disabled:opacity-60"
-          >
-            <option value="">Chọn công trình...</option>
-            {agencyProjects.map((p: ProjectData) => <option key={p.STT} value={p['Tên công trình']}>{p['Tên công trình']}</option>)}
-          </select>
+          <div className="relative">
+            <button
+              type="button"
+              disabled={!isAgency && !!incident}
+              onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+              className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm text-left flex justify-between items-center ${(!isAgency && !!incident) ? 'opacity-60 cursor-not-allowed' : 'hover:border-orange-300 transition-colors focus:ring-2 focus:ring-orange-500'}`}
+            >
+              <span className="truncate">{formData['Công trình'] || "Chọn công trình..."}</span>
+              <ChevronDown size={16} className="text-gray-400" />
+            </button>
+
+            {isProjectDropdownOpen && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 flex flex-col">
+                <div className="p-2 border-b border-gray-100 sticky top-0 bg-white rounded-t-xl">
+                   <input
+                     type="text"
+                     autoFocus
+                     placeholder="Tìm tên hoặc mã khách hàng..."
+                     value={projectSearchTerm}
+                     onChange={(e) => setProjectSearchTerm(e.target.value)}
+                     className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                   />
+                </div>
+                <div className="overflow-y-auto p-1 custom-scrollbar">
+                   {filteredAgencyProjects.length === 0 ? (
+                     <div className="p-3 text-center text-sm text-gray-500">Không tìm thấy công trình</div>
+                   ) : (
+                     filteredAgencyProjects.map((p: ProjectData) => (
+                       <button
+                         key={p.STT}
+                         type="button"
+                         className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-orange-50 transition-colors ${formData['Công trình'] === p['Tên công trình'] ? 'bg-orange-100 text-orange-700 font-semibold' : 'text-gray-700'}`}
+                         onClick={() => {
+                           setFormData({ ...formData, 'Công trình': p['Tên công trình'] });
+                           setIsProjectDropdownOpen(false);
+                           setProjectSearchTerm('');
+                         }}
+                       >
+                         <div className="font-medium truncate">{p['Tên công trình']}</div>
+                         <div className="text-[10px] text-gray-400 truncate">{p['Mã khách hàng']}</div>
+                       </button>
+                     ))
+                   )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="space-y-1.5">
