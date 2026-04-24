@@ -22,9 +22,10 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUpDown,
-  AlertTriangle 
+  AlertTriangle,
+  ShieldCheck 
 } from 'lucide-react';
-import { User, ProjectData, IncidentData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS, CORPORATIONS, POWER_COMPANIES } from './types';
+import { User, ProjectData, IncidentData, WarrantyData, AGENCIES, LISTENS, LOCALIDS, LOCALSUBS, NSXIVTS, LOGGERS, METERS, CORPORATIONS, POWER_COMPANIES } from './types';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(() => {
@@ -43,10 +44,12 @@ export default function App() {
   
   const [activeChart, setActiveChart] = useState<'agency' | 'corporation' | 'powerCompany' | 'incidentAgency' | 'incidentResult' | 'inverter'>('agency');
 
+  // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false); 
   const [isIncidentListOpen, setIsIncidentListOpen] = useState(false);
+  const [isWarrantyListOpen, setIsWarrantyListOpen] = useState(false); // MỚI: BẢO HÀNH MODAL
   
   const [editingProject, setEditingProject] = useState<ProjectData | null>(null);
   const [loginError, setLoginError] = useState('');
@@ -373,6 +376,15 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-4">
+              {/* NÚT BẢO HÀNH */}
+              <button 
+                onClick={() => setIsWarrantyListOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100 hover:bg-blue-100 transition-all text-sm font-semibold"
+              >
+                <ShieldCheck size={16} />
+                <span className="hidden sm:inline">Bảo Hành</span>
+              </button>
+
               <button 
                 onClick={() => setIsIncidentListOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-600 rounded-xl border border-orange-100 hover:bg-orange-100 transition-all text-sm font-semibold"
@@ -467,7 +479,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* TÙY CHỌN HIỂN THỊ BIỂU ĐỒ - DẠNG RADIO CHỌN 1 */}
         <div className="bg-white px-5 py-3 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center gap-6 mb-6">
           <div className="text-sm font-bold text-gray-700 flex items-center gap-2">
             <PieChart size={16} className="text-primary" />
@@ -475,69 +486,32 @@ export default function App() {
           </div>
           <div className="flex flex-wrap items-center gap-6">
             <label className="flex items-center gap-2 cursor-pointer group">
-              <input 
-                type="radio" 
-                name="chartType"
-                checked={activeChart === 'agency'} 
-                onChange={() => setActiveChart('agency')} 
-                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" 
-              />
+              <input type="radio" name="chartType" checked={activeChart === 'agency'} onChange={() => setActiveChart('agency')} className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" />
               <span className="text-sm font-medium text-gray-600 group-hover:text-primary transition-colors">Đại lý</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
-              <input 
-                type="radio" 
-                name="chartType"
-                checked={activeChart === 'corporation'} 
-                onChange={() => setActiveChart('corporation')} 
-                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" 
-              />
+              <input type="radio" name="chartType" checked={activeChart === 'corporation'} onChange={() => setActiveChart('corporation')} className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" />
               <span className="text-sm font-medium text-gray-600 group-hover:text-primary transition-colors">Tổng công ty</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
-              <input 
-                type="radio" 
-                name="chartType"
-                checked={activeChart === 'powerCompany'} 
-                onChange={() => setActiveChart('powerCompany')} 
-                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" 
-              />
+              <input type="radio" name="chartType" checked={activeChart === 'powerCompany'} onChange={() => setActiveChart('powerCompany')} className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" />
               <span className="text-sm font-medium text-gray-600 group-hover:text-primary transition-colors">Điện lực trực thuộc</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
-              <input 
-                type="radio" 
-                name="chartType"
-                checked={activeChart === 'inverter'} 
-                onChange={() => setActiveChart('inverter')} 
-                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" 
-              />
+              <input type="radio" name="chartType" checked={activeChart === 'inverter'} onChange={() => setActiveChart('inverter')} className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary cursor-pointer" />
               <span className="text-sm font-medium text-gray-600 group-hover:text-primary transition-colors">NSX Inverter</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
-              <input 
-                type="radio" 
-                name="chartType"
-                checked={activeChart === 'incidentAgency'} 
-                onChange={() => setActiveChart('incidentAgency')} 
-                className="w-4 h-4 text-orange-500 bg-gray-100 border-gray-300 focus:ring-orange-500 cursor-pointer" 
-              />
+              <input type="radio" name="chartType" checked={activeChart === 'incidentAgency'} onChange={() => setActiveChart('incidentAgency')} className="w-4 h-4 text-orange-500 bg-gray-100 border-gray-300 focus:ring-orange-500 cursor-pointer" />
               <span className="text-sm font-medium text-gray-600 group-hover:text-orange-500 transition-colors">Sự cố theo Đại lý</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer group">
-              <input 
-                type="radio" 
-                name="chartType"
-                checked={activeChart === 'incidentResult'} 
-                onChange={() => setActiveChart('incidentResult')} 
-                className="w-4 h-4 text-orange-500 bg-gray-100 border-gray-300 focus:ring-orange-500 cursor-pointer" 
-              />
+              <input type="radio" name="chartType" checked={activeChart === 'incidentResult'} onChange={() => setActiveChart('incidentResult')} className="w-4 h-4 text-orange-500 bg-gray-100 border-gray-300 focus:ring-orange-500 cursor-pointer" />
               <span className="text-sm font-medium text-gray-600 group-hover:text-orange-500 transition-colors">Kết quả xử lý sự cố</span>
             </label>
           </div>
         </div>
 
-        {/* KHU VỰC HIỂN THỊ 1 BIỂU ĐỒ DUY NHẤT CHIẾM FULL CHIỀU RỘNG */}
         <div className="mb-8 min-h-[160px]">
           <AnimatePresence mode="wait">
             {activeChart === 'agency' && <StatPieChart key="agency" data={filteredData} dataKey="Tên đại lý" title="Thống Kê Đại Lý" />}
@@ -733,13 +707,370 @@ export default function App() {
             }}
           />
         )}
+        {/* COMPONENT QUẢN LÝ BẢO HÀNH */}
+        {isWarrantyListOpen && (
+          <WarrantyListModal 
+            currentUser={user}
+            projects={data}
+            onClose={() => setIsWarrantyListOpen(false)}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
 }
 
 // ============================================================================
-// COMPONENT: QUẢN LÝ SỰ CỐ (Đã thêm Search Dropdown)
+// COMPONENT: QUẢN LÝ BẢO HÀNH MỚI
+// ============================================================================
+function WarrantyListModal({ currentUser, projects, onClose }: { currentUser: User; projects: ProjectData[]; onClose: () => void }) {
+  const [warranties, setWarranties] = useState<WarrantyData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingWarranty, setEditingWarranty] = useState<WarrantyData | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(''); 
+
+  useEffect(() => {
+    fetchWarranties();
+  }, []);
+
+  const fetchWarranties = async () => {
+    try {
+      const res = await fetch('/api/warranties', { headers: { 'x-user-role': currentUser.role } });
+      const data = await res.json();
+      if (currentUser.role === 'AGENCY') {
+        setWarranties(data.filter((w: WarrantyData) => w['Tên đại lý'] === currentUser.agencyName));
+      } else {
+        setWarranties(data);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const wToDelete = warranties.find(w => w._id === id);
+    if (!window.confirm("Bạn có chắc chắn muốn xóa phiếu bảo hành này?")) return;
+    try {
+      await fetch(`/api/warranties/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          user: currentUser.username, 
+          action: 'XÓA BẢO HÀNH',
+          details: wToDelete ? `Xóa phiếu bảo hành công trình: ${wToDelete['Công trình']}` : 'Xóa bảo hành'
+        })
+      });
+      fetchWarranties();
+    } catch (error) { console.error(error); }
+  };
+
+  const filteredWarranties = useMemo(() => {
+    if (!searchTerm) return warranties;
+    const lower = searchTerm.toLowerCase();
+    return warranties.filter(w => 
+      (w['Công trình'] || '').toLowerCase().includes(lower) ||
+      (w['Tên đại lý'] || '').toLowerCase().includes(lower) ||
+      (w['Serial number cũ'] || '').toLowerCase().includes(lower) ||
+      (w['Serial number mới'] || '').toLowerCase().includes(lower)
+    );
+  }, [warranties, searchTerm]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+      
+      {!isFormOpen ? (
+        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl flex flex-col">
+          <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/50 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-500 p-2 rounded-xl text-white"><ShieldCheck size={20} /></div>
+              <div>
+                <h2 className="text-xl font-serif font-bold text-gray-800">Quản Lý Bảo Hành</h2>
+                <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">Warranty Tracking</p>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input 
+                  type="text"
+                  placeholder="Tìm công trình, đại lý, SN..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64 shadow-sm transition-all"
+                />
+              </div>
+
+              <button onClick={() => { setEditingWarranty(null); setIsFormOpen(true); }} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 flex items-center gap-2">
+                <Plus size={16} /> Tạo Phiếu Mới
+              </button>
+              <button onClick={onClose} className="p-2 hover:bg-white rounded-full text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto p-6">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
+                <tr>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Công Trình</th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Đại Lý</th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">SN Cũ / Mới</th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">TG Gửi KCS / KCS Gửi Lại</th>
+                  <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Trạng Thái</th>
+                  <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-gray-500">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {loading ? <tr><td colSpan={6} className="p-4 text-center text-gray-400">Đang tải...</td></tr> : 
+                 filteredWarranties.length === 0 ? <tr><td colSpan={6} className="p-4 text-center text-gray-400">Không có dữ liệu bảo hành</td></tr> :
+                 filteredWarranties.map(w => (
+                  <tr key={w._id} className="hover:bg-gray-50/50">
+                    <td className="px-4 py-3 font-medium text-sm text-gray-800">{w['Công trình']}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600"><span className="px-2 py-1 bg-gray-100 rounded-md text-xs font-semibold">{w['Tên đại lý']}</span></td>
+                    <td className="px-4 py-3 text-xs">
+                      <div className="text-gray-500 line-through mb-1" title="Serial Number Cũ">{w['Serial number cũ'] || '-'}</div>
+                      <div className="font-semibold text-green-600" title="Serial Number Mới">{w['Serial number mới'] || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-600">
+                      <div>Gửi KCS: <span className="font-mono">{w['Ngày đại lý gửi KCS'] ? new Date(w['Ngày đại lý gửi KCS']).toLocaleDateString('vi-VN') : '-'}</span></div>
+                      <div className="mt-1">KCS Trả: <span className="font-mono">{w['Ngày KCS gửi đại lý'] ? new Date(w['Ngày KCS gửi đại lý']).toLocaleDateString('vi-VN') : '-'}</span></div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                        w['Trạng thái'] === 'Đại lý đã nhận/Lắp đặt' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                      }`}>{w['Trạng thái']}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right flex justify-end gap-1">
+                      <button onClick={() => { setEditingWarranty(w); setIsFormOpen(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 bg-gray-50 rounded"><Edit2 size={14}/></button>
+                      {(currentUser.role === 'ADMIN' || currentUser.role === 'OPERATION') && (
+                        <button onClick={() => handleDelete(w._id!)} className="p-1.5 text-gray-400 hover:text-red-600 bg-gray-50 rounded"><Trash2 size={14}/></button>
+                      )}
+                    </td>
+                  </tr>
+                 ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      ) : (
+        <WarrantyForm 
+          currentUser={currentUser}
+          projects={projects}
+          warranty={editingWarranty}
+          onClose={() => setIsFormOpen(false)}
+          onSave={async (data: WarrantyData) => {
+            const isUpdate = !!data._id;
+            const actionName = isUpdate ? 'CẬP NHẬT BẢO HÀNH' : 'THÊM BẢO HÀNH';
+            const detailsText = `${isUpdate ? 'Cập nhật' : 'Thêm'} phiếu bảo hành công trình: ${data['Công trình']}`;
+
+            await fetch('/api/warranties', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                data, 
+                user: currentUser.username, 
+                action: actionName,
+                details: detailsText
+              })
+            });
+            fetchWarranties();
+            setIsFormOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function WarrantyForm({ currentUser, projects, warranty, onClose, onSave }: any) {
+  const isAgency = currentUser.role === 'AGENCY';
+  
+  const agencyProjects = isAgency 
+    ? projects.filter((p: ProjectData) => p['Tên đại lý'] === currentUser.agencyName)
+    : projects;
+
+  const [formData, setFormData] = useState<WarrantyData>(warranty || {
+    'Tên đại lý': currentUser.agencyName || '',
+    'Công trình': '',
+    'Serial number cũ': '',
+    'Serial number mới': '',
+    'Ngày đại lý gửi KCS': '',
+    'Ngày KCS gửi đại lý': '',
+    'Trạng thái': 'Đại lý chưa nhận/Lắp đặt'
+  });
+
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProjectDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredAgencyProjects = useMemo(() => {
+    if (!projectSearchTerm) return agencyProjects;
+    const lowerSearch = projectSearchTerm.toLowerCase();
+    return agencyProjects.filter((p: ProjectData) =>
+      p['Tên công trình']?.toLowerCase().includes(lowerSearch) ||
+      p['Mã khách hàng']?.toLowerCase().includes(lowerSearch)
+    );
+  }, [agencyProjects, projectSearchTerm]);
+
+  // Tự động điền Đại lý khi chọn Công trình mới (Nếu là Operation/Admin thao tác)
+  const handleSelectProject = (project: ProjectData) => {
+    setFormData({ 
+      ...formData, 
+      'Công trình': project['Tên công trình'],
+      'Tên đại lý': project['Tên đại lý'] || formData['Tên đại lý']
+    });
+    setIsProjectDropdownOpen(false);
+    setProjectSearchTerm('');
+  };
+
+  return (
+    <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl flex flex-col">
+      <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+        <h2 className="text-lg font-bold text-blue-800">{warranty ? 'Cập Nhật Phiếu Bảo Hành' : 'Thêm Phiếu Bảo Hành'}</h2>
+        <button onClick={onClose} className="p-2 text-gray-400 hover:bg-white rounded-full"><X size={20}/></button>
+      </div>
+      <form onSubmit={(e) => { 
+        e.preventDefault(); 
+        if (!formData['Công trình']) { alert("Vui lòng chọn công trình!"); return; }
+        onSave(formData); 
+      }} className="flex-1 overflow-y-auto p-6 space-y-4">
+        
+        <div className="space-y-1.5" ref={dropdownRef}>
+          <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Công trình *</label>
+          <div className="relative">
+            <button
+              type="button"
+              disabled={!!warranty} // Đã tạo phiếu thì không đổi công trình
+              onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+              className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm text-left flex justify-between items-center ${!!warranty ? 'opacity-60 cursor-not-allowed' : 'hover:border-blue-300 transition-colors focus:ring-2 focus:ring-blue-500'}`}
+            >
+              <span className="truncate font-semibold">{formData['Công trình'] || "Click để tìm và chọn công trình..."}</span>
+              <ChevronDown size={16} className="text-gray-400" />
+            </button>
+
+            {isProjectDropdownOpen && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 flex flex-col">
+                <div className="p-2 border-b border-gray-100 sticky top-0 bg-white rounded-t-xl">
+                   <input
+                     type="text"
+                     autoFocus
+                     placeholder="Tìm tên hoặc mã khách hàng..."
+                     value={projectSearchTerm}
+                     onChange={(e) => setProjectSearchTerm(e.target.value)}
+                     className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   />
+                </div>
+                <div className="overflow-y-auto p-1 custom-scrollbar">
+                   {filteredAgencyProjects.length === 0 ? (
+                     <div className="p-3 text-center text-sm text-gray-500">Không tìm thấy công trình</div>
+                   ) : (
+                     filteredAgencyProjects.map((p: ProjectData) => (
+                       <button
+                         key={p.STT}
+                         type="button"
+                         className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-blue-50 transition-colors ${formData['Công trình'] === p['Tên công trình'] ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-700'}`}
+                         onClick={() => handleSelectProject(p)}
+                       >
+                         <div className="font-medium truncate">{p['Tên công trình']}</div>
+                         <div className="text-[10px] text-gray-400 truncate flex justify-between">
+                            <span>Mã KH: {p['Mã khách hàng']}</span>
+                            <span className="text-blue-600 font-semibold">{p['Tên đại lý']}</span>
+                         </div>
+                       </button>
+                     ))
+                   )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Đại lý quản lý</label>
+              <input type="text" disabled value={formData['Tên đại lý']} className="w-full px-4 py-2.5 rounded-xl bg-gray-100 border border-gray-200 text-sm opacity-70 font-semibold text-gray-700" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Trạng thái lắp đặt thay thế</label>
+              <select 
+                value={formData['Trạng thái']} 
+                onChange={e => setFormData({...formData, 'Trạng thái': e.target.value})}
+                className="w-full px-4 py-2.5 rounded-xl bg-blue-50/50 border border-blue-200 text-sm focus:ring-2 focus:ring-blue-500 font-semibold text-blue-800"
+              >
+                <option value="Đại lý chưa nhận/Lắp đặt">Chưa nhận / Lắp đặt</option>
+                <option value="Đại lý đã nhận/Lắp đặt">Đã nhận và Lắp đặt</option>
+              </select>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Serial Number CŨ (Lỗi)</label>
+              <input 
+                type="text" 
+                value={formData['Serial number cũ']} 
+                onChange={e => setFormData({...formData, 'Serial number cũ': e.target.value})}
+                placeholder="Nhập SN cũ..."
+                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Serial Number MỚI (Thay thế)</label>
+              <input 
+                type="text" 
+                value={formData['Serial number mới']} 
+                onChange={e => setFormData({...formData, 'Serial number mới': e.target.value})}
+                placeholder="Nhập SN mới..."
+                className="w-full px-4 py-2.5 rounded-xl bg-green-50 border border-green-200 text-sm focus:ring-2 focus:ring-green-500 text-green-700 font-semibold"
+              />
+            </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Ngày Đại lý gửi về KCS</label>
+              <input 
+                type="date" 
+                value={formData['Ngày đại lý gửi KCS']} 
+                onChange={e => setFormData({...formData, 'Ngày đại lý gửi KCS': e.target.value})}
+                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500 font-mono"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Ngày KCS gửi lại Đại lý</label>
+              <input 
+                type="date" 
+                value={formData['Ngày KCS gửi đại lý']} 
+                onChange={e => setFormData({...formData, 'Ngày KCS gửi đại lý': e.target.value})}
+                className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500 font-mono"
+              />
+            </div>
+        </div>
+
+        <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-gray-100">
+          <button type="button" onClick={onClose} className="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold">Hủy</button>
+          <button type="submit" className="px-8 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-colors">Lưu Phiếu</button>
+        </div>
+      </form>
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// COMPONENT: QUẢN LÝ SỰ CỐ
 // ============================================================================
 function IncidentListModal({ currentUser, projects, onClose }: { currentUser: User; projects: ProjectData[]; onClose: () => void }) {
   const [incidents, setIncidents] = useState<IncidentData[]>([]);
@@ -747,7 +1078,6 @@ function IncidentListModal({ currentUser, projects, onClose }: { currentUser: Us
   const [editingIncident, setEditingIncident] = useState<IncidentData | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   
-  // LOGIC LỌC VÀ SẮP XẾP SỰ CỐ
   const [searchTerm, setSearchTerm] = useState(''); 
   const [showFilters, setShowFilters] = useState(false);
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
@@ -1020,6 +1350,7 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
     'Nguyên nhân và giải pháp': ''
   });
 
+  // STATE: DROPDOWN TÌM KIẾM CÔNG TRÌNH TÙY CHỈNH
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -1071,6 +1402,38 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
     });
   };
 
+  // LOGIC NÚT CHUYỂN BẢO HÀNH
+  const handleTransferToWarranty = async () => {
+    if(!window.confirm(`Tạo phiếu BẢO HÀNH mới cho công trình: ${formData['Công trình']}?`)) return;
+    
+    const newWarranty = {
+        'Tên đại lý': formData['Tên đại lý'],
+        'Công trình': formData['Công trình'],
+        'Serial number cũ': '',
+        'Serial number mới': '',
+        'Ngày đại lý gửi KCS': '',
+        'Ngày KCS gửi đại lý': '',
+        'Trạng thái': 'Đại lý chưa nhận/Lắp đặt'
+    };
+
+    try {
+        await fetch('/api/warranties', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                data: newWarranty, 
+                user: currentUser.username, 
+                action: 'CHUYỂN BẢO HÀNH',
+                details: `Tạo từ sự cố công trình: ${formData['Công trình']}`
+            })
+        });
+        alert('Đã tạo phiếu Bảo hành thành công! Hãy vào mục "Bảo Hành" để cập nhật Serial Number.');
+        onClose(); // Đóng form sự cố sau khi chuyển
+    } catch(e) {
+        alert('Lỗi kết nối khi chuyển bảo hành');
+    }
+  }
+
   return (
     <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-[32px] shadow-2xl flex flex-col">
       <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
@@ -1086,6 +1449,7 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
         onSave(formData); 
       }} className="flex-1 overflow-y-auto p-6 space-y-4">
         
+        {/* CUSTOM DROPDOWN TÌM KIẾM CÔNG TRÌNH */}
         <div className="space-y-1.5" ref={dropdownRef}>
           <label className="block text-[10px] font-bold uppercase text-gray-400 ml-1">Công trình *</label>
           <div className="relative">
@@ -1095,7 +1459,7 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
               className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm text-left flex justify-between items-center ${(!isAgency && !!incident) ? 'opacity-60 cursor-not-allowed' : 'hover:border-orange-300 transition-colors focus:ring-2 focus:ring-orange-500'}`}
             >
-              <span className="truncate">{formData['Công trình'] || "Chọn công trình..."}</span>
+              <span className="truncate">{formData['Công trình'] || "Click để tìm và chọn công trình..."}</span>
               <ChevronDown size={16} className="text-gray-400" />
             </button>
 
@@ -1105,7 +1469,7 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
                    <input
                      type="text"
                      autoFocus
-                     placeholder="Tìm tên hoặc mã khách hàng..."
+                     placeholder="Tìm tên công trình hoặc mã khách hàng..."
                      value={projectSearchTerm}
                      onChange={(e) => setProjectSearchTerm(e.target.value)}
                      className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -1121,13 +1485,20 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
                          type="button"
                          className={`w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-orange-50 transition-colors ${formData['Công trình'] === p['Tên công trình'] ? 'bg-orange-100 text-orange-700 font-semibold' : 'text-gray-700'}`}
                          onClick={() => {
-                           setFormData({ ...formData, 'Công trình': p['Tên công trình'] });
+                           setFormData({ 
+                             ...formData, 
+                             'Công trình': p['Tên công trình'],
+                             'Tên đại lý': p['Tên đại lý'] || formData['Tên đại lý'] // Điền luôn đại lý
+                           });
                            setIsProjectDropdownOpen(false);
                            setProjectSearchTerm('');
                          }}
                        >
                          <div className="font-medium truncate">{p['Tên công trình']}</div>
-                         <div className="text-[10px] text-gray-400 truncate">{p['Mã khách hàng']}</div>
+                         <div className="text-[10px] text-gray-400 truncate flex justify-between">
+                            <span>Mã KH: {p['Mã khách hàng']}</span>
+                            {!isAgency && <span className="text-orange-600 font-semibold">{p['Tên đại lý']}</span>}
+                         </div>
                        </button>
                      ))
                    )}
@@ -1240,9 +1611,24 @@ function IncidentForm({ currentUser, projects, incident, onClose, onSave }: any)
           </div>
         </div>
 
-        <div className="mt-8 flex justify-end gap-3 pt-4">
-          <button type="button" onClick={onClose} className="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold">Hủy</button>
-          <button type="submit" className="px-6 py-2.5 bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-orange-500/20">Lưu Phản Ánh</button>
+        <div className="mt-8 flex justify-between items-center pt-4 border-t border-gray-100">
+          {/* NÚT CHUYỂN BẢO HÀNH BÊN TRÁI - CHỈ HIỆN KHI ĐANG CẬP NHẬT SỰ CỐ ĐÃ CÓ */}
+          <div>
+             {incident && (
+               <button 
+                 type="button" 
+                 onClick={handleTransferToWarranty}
+                 className="px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-colors flex items-center gap-2 border border-blue-200"
+               >
+                 <ShieldCheck size={16} /> Chuyển Bảo Hành
+               </button>
+             )}
+          </div>
+          
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose} className="px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold">Hủy</button>
+            <button type="submit" className="px-6 py-2.5 bg-orange-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-orange-500/20 hover:bg-orange-700 transition-colors">Lưu Phản Ánh</button>
+          </div>
         </div>
       </form>
     </motion.div>
